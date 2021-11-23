@@ -16,6 +16,7 @@ label_list = ["UNK_UNK", "ABBR_abb", "ABBR_exp", "DESC_def", "DESC_desc",
               "NUM_perc", "NUM_period", "NUM_speed", "NUM_temp", "NUM_volsize",
               "NUM_weight"]
 
+
 def get_qc_examples(input_file):
     """Creates examples for the training and dev sets."""
     examples = []
@@ -37,7 +38,7 @@ def get_qc_examples(input_file):
 
 
 def generate_data_loader(input_examples, label_masks, label_map, batch_size, tokenizer,
-                         do_shuffle=False, balance_label_examples=False):
+                         max_seq_length, do_shuffle=False, balance_label_examples=False):
     '''
     Generate a Dataloader given the input examples, eventually masked if they are
     to be considered NOT labeled.
