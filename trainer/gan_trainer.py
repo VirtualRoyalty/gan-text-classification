@@ -1,19 +1,20 @@
-import numpy as np
 import torch
+import numpy as np
 import torch.nn.functional as F
 # import time
 # from base import BaseTrainer
 # from utils import inf_loop, MetricTracker
-from model import *
-from typing import *
+from transformers import AutoModel
+from model import Generator, Discriminator
+from typing import Dict
 
 
 class GANTrainer:
-    def __init__(self, config: Dict, backbone,
+    def __init__(self, config: Dict, backbone: AutoModel,
                  generator: Generator, discriminator: Discriminator,
                  train_dataloader, valid_dataloader,
                  generator_optimizer, discriminator_optimizer,
-                 device):
+                 device=None):
         self.config = config
         self.backbone = backbone
         self.generator = generator
@@ -45,25 +46,25 @@ class GANTrainer:
             hidden_states = model_outputs[-1]
 
             # Generate fake data that should have the same distribution of the ones
-            noise = torch.zeros(b_input_ids.shape[0], self.config['NOISE_SIZE'], device=self.device).uniform_(0, 1)
+            noise = torch.zeros(b_input_ids.shape[0], self.config['noise_size'], device=self.device).uniform_(0, 1)
             gen_rep = self.generator(noise)
 
             # Generate the output of the Discriminator for real and fake data.
             disciminator_input = torch.cat([hidden_states, gen_rep], dim=0)
             features, logits, probs = self.discriminator(disciminator_input)
 
-            features_list = torch.split(features, self.config['BATCH_SIZE'])
+            features_list = torch.split(features, self.config['batch_size'])
             D_real_features = features_list[0]
             D_fake_features = features_list[1]
 
-            logits_list = torch.split(logits, self.config['BATCH_SIZE'])
+            logits_list = torch.split(logits, self.config['batch_size'])
             D_real_logits, D_fake_logits = logits_list[0], logits_list[1]
 
-            probs_list = torch.split(probs, self.config['BATCH_SIZE'])
+            probs_list = torch.split(probs, self.config['batch_size'])
             D_real_probs, D_fake_probs = probs_list[0], probs_list[1]
 
             # Generator's LOSS estimation
-            g_loss_d = -1 * torch.mean(torch.log(1 - D_fake_probs[:, -1] + self.config['EPSILON']))
+            g_loss_d = -1 * torch.mean(torch.log(1 - D_fake_probs[:, -1] + self.config['epsilon']))
             g_feat_reg = torch.mean(
                 torch.pow(torch.mean(D_real_features, dim=0) - torch.mean(D_fake_features, dim=0), 2))
             g_loss = g_loss_d + g_feat_reg
@@ -73,7 +74,7 @@ class GANTrainer:
             log_probs = F.log_softmax(logits, dim=-1)
             # The discriminator provides an output for labeled and unlabeled real data
             # so the loss evaluated for unlabeled data is ignored (masked)
-            label2one_hot = torch.nn.functional.one_hot(b_labels, self.config['NUM_LABELS'])
+            label2one_hot = torch.nn.functional.one_hot(b_labels, self.config['num_labels'])
             per_example_loss = -torch.sum(label2one_hot * log_probs, dim=-1)
             per_example_loss = torch.masked_select(per_example_loss, b_label_mask.to(self.device))
             labeled_example_count = per_example_loss.type(torch.float32).numel()
@@ -85,8 +86,8 @@ class GANTrainer:
             else:
                 D_L_Supervised = torch.div(torch.sum(per_example_loss.to(self.device)), labeled_example_count)
 
-            D_L_unsupervised1U = -1 * torch.mean(torch.log(1 - D_real_probs[:, -1] + self.config['EPSILON']))
-            D_L_unsupervised2U = -1 * torch.mean(torch.log(D_fake_probs[:, -1] + self.config['EPSILON']))
+            D_L_unsupervised1U = -1 * torch.mean(torch.log(1 - D_real_probs[:, -1] + self.config['epsilon']))
+            D_L_unsupervised2U = -1 * torch.mean(torch.log(D_fake_probs[:, -1] + self.config['epsilon']))
             d_loss = D_L_Supervised + D_L_unsupervised1U + D_L_unsupervised2U
 
             # Avoid gradient accumulation
@@ -104,7 +105,7 @@ class GANTrainer:
             tr_g_loss += g_loss.item()
             tr_d_loss += d_loss.item()
             # Update the learning rate with the scheduler
-            if self.config['APPLY_SCHEDULER']:
+            if self.config['apply_scheduler']:
                 self.scheduler_d.step()
                 self.scheduler_g.step()
         return
