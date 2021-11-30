@@ -2,10 +2,12 @@ from base import *
 
 
 class Generator(BaseModel):
-    def __init__(self, noise_size=100, output_size=512, hidden_sizes=[512], dropout_rate=0.1):
+    def __init__(self, noise_size: int = 100, output_size: int = 512,
+                 hidden_size: int = 512, hidden_layers: int = 1,
+                 dropout_rate: float = 0.1):
         super(Generator, self).__init__()
         layers = []
-        hidden_sizes = [noise_size] + hidden_sizes
+        hidden_sizes = [noise_size] + [hidden_size] * hidden_layers
         for i in range(len(hidden_sizes) - 1):
             layers.extend([nn.Linear(hidden_sizes[i], hidden_sizes[i + 1]),
                            nn.LeakyReLU(0.2, inplace=True),

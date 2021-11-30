@@ -2,11 +2,12 @@ from base import *
 
 
 class Discriminator(BaseModel):
-    def __init__(self, input_size=512, hidden_sizes=[512], num_labels=2, dropout_rate=0.1):
+    def __init__(self, input_size: int = 512, hidden_size: int = 512, hidden_layers: int = 1,
+                 num_labels: int = 2, dropout_rate: float = 0.1):
         super(Discriminator, self).__init__()
         self.input_dropout = nn.Dropout(p=dropout_rate)
         layers = []
-        hidden_sizes = [input_size] + hidden_sizes
+        hidden_sizes = [input_size] + [hidden_size] * hidden_layers
         for i in range(len(hidden_sizes) - 1):
             layers.extend([nn.Linear(hidden_sizes[i], hidden_sizes[i + 1]),
                            nn.LeakyReLU(0.2, inplace=True),
@@ -21,6 +22,10 @@ class Discriminator(BaseModel):
         logits = self.logit(last_rep)
         probs = self.softmax(logits)
         return last_rep, logits, probs
+
+    # def __train__(self):
+    #     self.
+    #     super().train()
 
 # class MnistModel(BaseModel):
 #     def __init__(self, num_classes=10):
