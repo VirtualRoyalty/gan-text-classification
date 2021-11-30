@@ -136,7 +136,7 @@ class GANTrainer:
         nll_loss = torch.nn.CrossEntropyLoss(ignore_index=-1)
 
         # Evaluate data for one epoch
-        for batch in self.test_dataloader:
+        for batch in self.valid_dataloader:
             # Unpack this training batch from our dataloader.
             b_input_ids = batch[0].to(self.device)
             b_input_mask = batch[1].to(self.device)
@@ -165,7 +165,7 @@ class GANTrainer:
         print("  Accuracy: {0:.3f}".format(test_accuracy))
 
         # Calculate the average loss over all of the batches.
-        avg_test_loss = total_test_loss / len(self.test_dataloader)
+        avg_test_loss = total_test_loss / len(self.valid_dataloader)
         avg_test_loss = avg_test_loss.item()
         # Record all statistics from this epoch.
         self.training_stats.append(
