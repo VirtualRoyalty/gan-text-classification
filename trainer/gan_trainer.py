@@ -6,7 +6,7 @@ import torch.nn.functional as F
 # from utils import inf_loop, MetricTracker
 from transformers import AutoModel
 from model import Generator, Discriminator
-from typing import Dict
+from typing import Dict, Tuple
 
 
 class GANTrainer:
@@ -27,7 +27,7 @@ class GANTrainer:
         self.training_stats = []
         pass
 
-    def train_epoch(self):
+    def train_epoch(self) -> Tuple[float, float]:
         tr_g_loss = 0
         tr_d_loss = 0
         self.backbone.train()
@@ -108,7 +108,7 @@ class GANTrainer:
             if self.config['apply_scheduler']:
                 self.scheduler_d.step()
                 self.scheduler_g.step()
-        return
+        return tr_g_loss, tr_d_loss
 
     @torch.no_grad()
     def validation(self, tr_g_loss, tr_d_loss, epoch_i):
