@@ -14,6 +14,7 @@ class GANTrainer:
                  generator: Generator, discriminator: Discriminator,
                  train_dataloader, valid_dataloader,
                  generator_optimizer, discriminator_optimizer,
+                 scheduler_d=None, scheduler_g = None,
                  device=None):
         self.config = config
         self.backbone = backbone
@@ -23,6 +24,8 @@ class GANTrainer:
         self.valid_dataloader = valid_dataloader
         self.generator_optimizer = generator_optimizer
         self.discriminator_optimizer = discriminator_optimizer
+        self.scheduler_d = scheduler_d
+        self.scheduler_g = scheduler_g
         self.device = device
         self.training_stats = []
         pass
