@@ -2,11 +2,13 @@ from base import *
 
 
 class Discriminator(BaseModel):
-    def __init__(self, input_size=512, hidden_sizes=[512], num_labels=2, dropout_rate=0.1):
+    def __init__(self, backbone, input_size: int = 512, hidden_size: int = 512, hidden_layers: int = 1,
+                 num_labels: int = 2, dropout_rate: float = 0.1):
         super(Discriminator, self).__init__()
+        self.backbone = backbone
         self.input_dropout = nn.Dropout(p=dropout_rate)
         layers = []
-        hidden_sizes = [input_size] + hidden_sizes
+        hidden_sizes = [input_size] + [hidden_size] * hidden_layers
         for i in range(len(hidden_sizes) - 1):
             layers.extend([nn.Linear(hidden_sizes[i], hidden_sizes[i + 1]),
                            nn.LeakyReLU(0.2, inplace=True),
@@ -15,12 +17,20 @@ class Discriminator(BaseModel):
         self.logit = nn.Linear(hidden_sizes[-1], num_labels + 1)
         self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, input_rep):
-        input_rep = self.input_dropout(input_rep)
-        last_rep = self.layers(input_rep)
-        logits = self.logit(last_rep)
+    def forward(self, input_ids, input_mask, external_states=None):
+        model_output = self.backbone(input_ids, attention_mask=input_mask)
+        hidden_states = model_output[-1]
+        if external_states is not None:
+            hidden_states = torch.cat([hidden_states, external_states], dim=0)
+        hidden_states = self.input_dropout(hidden_states)
+        last_states = self.layers(hidden_states)
+        logits = self.logit(last_states)
         probs = self.softmax(logits)
-        return last_rep, logits, probs
+        return last_states, logits, probs
+
+    # def __train__(self):
+    #     self.
+    #     super().train()
 
 # class MnistModel(BaseModel):
 #     def __init__(self, num_classes=10):
