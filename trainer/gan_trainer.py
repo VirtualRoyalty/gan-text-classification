@@ -14,7 +14,7 @@ class GANTrainer:
                  generator: Generator, discriminator: Discriminator,
                  train_dataloader, valid_dataloader,
                  generator_optimizer, discriminator_optimizer,
-                 scheduler_d=None, scheduler_g = None,
+                 scheduler_d=None, scheduler_g=None,
                  device=None):
         self.config = config
         self.backbone = backbone
@@ -45,16 +45,19 @@ class GANTrainer:
             b_label_mask = batch[3].to(self.device)
 
             # Encode real data in the Transformer
-            model_outputs = self.backbone(b_input_ids, attention_mask=b_input_mask)
-            hidden_states = model_outputs[-1]
+            # model_outputs = self.backbone(b_input_ids, attention_mask=b_input_mask)
+            # hidden_states = model_outputs[-1]
 
             # Generate fake data that should have the same distribution of the ones
             noise = torch.zeros(b_input_ids.shape[0], self.config['noise_size'], device=self.device).uniform_(0, 1)
             gen_rep = self.generator(noise)
 
             # Generate the output of the Discriminator for real and fake data.
-            disciminator_input = torch.cat([hidden_states, gen_rep], dim=0)
-            features, logits, probs = self.discriminator(disciminator_input)
+            # disciminator_input = torch.cat([hidden_states, gen_rep], dim=0)
+            # features, logits, probs = self.discriminator(disciminator_input)
+            features, logits, probs = self.discriminator(input_ids=b_input_ids,
+                                                         input_mask=b_input_mask,
+                                                         external_states=gen_rep)
 
             features_list = torch.split(features, self.config['batch_size'])
             D_real_features = features_list[0]
@@ -148,9 +151,9 @@ class GANTrainer:
             # Tell pytorch not to bother with constructing the compute graph during
             # the forward pass, since this is only needed for backprop (training).
             with torch.no_grad():
-                model_outputs = self.backbone(b_input_ids, attention_mask=b_input_mask)
-                hidden_states = model_outputs[-1]
-                _, logits, probs = self.discriminator(hidden_states)
+                # model_outputs = self.backbone(b_input_ids, attention_mask=b_input_mask)
+                # hidden_states = model_outputs[-1]
+                _, logits, probs = self.discriminator(input_ids=b_input_ids, input_mask=b_input_mask)
                 # log_probs = F.log_softmax(probs[:,1:], dim=-1)
                 filtered_logits = logits[:, 0:-1]
                 # Accumulate the test loss.
