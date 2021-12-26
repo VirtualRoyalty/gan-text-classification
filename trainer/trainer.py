@@ -31,7 +31,7 @@ class Trainer:
         tr_g_loss = 0
         tr_d_loss = 0
         self.backbone.train()
-        self.generator.train()
+        # self.generator.train()
         self.discriminator.train()
 
         for step, batch in enumerate(self.train_dataloader):
