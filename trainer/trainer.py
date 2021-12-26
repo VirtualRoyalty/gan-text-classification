@@ -89,6 +89,7 @@ class Trainer:
             # so the "supervised loss" in this case is not evaluated
             if labeled_example_count == 0:
                 D_L_Supervised = 0
+                continue
             else:
                 D_L_Supervised = torch.div(torch.sum(per_example_loss.to(self.device)), labeled_example_count)
 
