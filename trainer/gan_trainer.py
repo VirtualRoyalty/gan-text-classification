@@ -60,6 +60,9 @@ class GANTrainer:
                                                          external_states=gen_rep)
 
             features_list = torch.split(features, self.config['batch_size'])
+            if len(features_list) != 2:
+                print(features_list[0].shape)
+                continue
             D_real_features = features_list[0]
             D_fake_features = features_list[1]
 
