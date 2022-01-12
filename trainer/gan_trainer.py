@@ -111,12 +111,12 @@ class GANTrainer:
             if self.config['apply_scheduler']:
                 self.scheduler_d.step()
                 self.scheduler_g.step()
-            # Calculate the average loss over all of the batches.
-            avg_train_loss_g = tr_g_loss / len(self.train_dataloader)
-            avg_train_loss_d = tr_d_loss / len(self.train_dataloader)
             if log_env:
-                log_env['train/generator_loss'].log(avg_train_loss_g)
-                log_env['train/discriminator_loss'].log(avg_train_loss_d)
+                log_env['train/generator_loss'].log(tr_g_loss)
+                log_env['train/discriminator_loss'].log(tr_d_loss)
+        # Calculate the average loss over all of the batches.
+        avg_train_loss_g = tr_g_loss / len(self.train_dataloader)
+        avg_train_loss_d = tr_d_loss / len(self.train_dataloader)
         return avg_train_loss_g, avg_train_loss_d
 
     @torch.no_grad()
