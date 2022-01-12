@@ -115,6 +115,7 @@ class GANTrainer:
                 if tr_d_loss != 0:
                     log_env['train/generator_loss'].log(g_loss.item())
                     log_env['train/discriminator_loss'].log(d_loss.item())
+
         # Calculate the average loss over all of the batches.
         avg_train_loss_g = tr_g_loss / len(self.train_dataloader)
         avg_train_loss_d = tr_d_loss / len(self.train_dataloader)
