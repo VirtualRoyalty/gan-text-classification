@@ -30,7 +30,7 @@ class GANTrainer:
         self.training_stats = []
         pass
 
-    def train_epoch(self) -> Tuple[float, float]:
+    def train_epoch(self, log_env=None) -> Tuple[float, float]:
         tr_g_loss = 0
         tr_d_loss = 0
         self.backbone.train()
@@ -44,17 +44,11 @@ class GANTrainer:
             b_labels = batch[2].to(self.device)
             b_label_mask = batch[3].to(self.device)
 
-            # Encode real data in the Transformer
-            # model_outputs = self.backbone(b_input_ids, attention_mask=b_input_mask)
-            # hidden_states = model_outputs[-1]
-
             # Generate fake data that should have the same distribution of the ones
             noise = torch.zeros(b_input_ids.shape[0], self.config['noise_size'], device=self.device).uniform_(0, 1)
             gen_rep = self.generator(noise)
 
             # Generate the output of the Discriminator for real and fake data.
-            # disciminator_input = torch.cat([hidden_states, gen_rep], dim=0)
-            # features, logits, probs = self.discriminator(disciminator_input)
             features, logits, probs = self.discriminator(input_ids=b_input_ids,
                                                          input_mask=b_input_mask,
                                                          external_states=gen_rep)
@@ -117,16 +111,19 @@ class GANTrainer:
             if self.config['apply_scheduler']:
                 self.scheduler_d.step()
                 self.scheduler_g.step()
-        return tr_g_loss, tr_d_loss
+            # Calculate the average loss over all of the batches.
+            avg_train_loss_g = tr_g_loss / len(self.train_dataloader)
+            avg_train_loss_d = tr_d_loss / len(self.train_dataloader)
+            if log_env:
+                log_env['train/generator_loss'] = avg_train_loss_g
+                log_env['train/discriminator_loss'] = avg_train_loss_d
+        return avg_train_loss_g, avg_train_loss_d
 
     @torch.no_grad()
-    def validation(self, tr_g_loss, tr_d_loss, epoch_i):
+    def validation(self, generator_loss, discriminator_loss, epoch_i):
 
-        # Calculate the average loss over all of the batches.
-        avg_train_loss_g = tr_g_loss / len(self.train_dataloader)
-        avg_train_loss_d = tr_d_loss / len(self.train_dataloader)
-        print(f"\tAverage training loss generetor: {avg_train_loss_g:.3f}")
-        print(f"\tAverage training loss discriminator: {avg_train_loss_d:.3f}")
+        print(f"\tAverage training loss generetor: {generator_loss:.3f}")
+        print(f"\tAverage training loss discriminator: {discriminator_loss:.3f}")
         # print("  Training epcoh took: {:}".format(training_time))
 
         # Put the model in evaluation mode--the dropout layers behave differently
@@ -180,8 +177,8 @@ class GANTrainer:
         self.training_stats.append(
             {
                 'epoch': epoch_i + 1,
-                'Training Loss generator': avg_train_loss_g,
-                'Training Loss discriminator': avg_train_loss_d,
+                'Training Loss generator': generator_loss,
+                'Training Loss discriminator': discriminator_loss,
                 'Valid. Loss': avg_test_loss,
                 'Valid. Accur.': test_accuracy,
             }
