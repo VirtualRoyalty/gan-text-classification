@@ -115,8 +115,8 @@ class GANTrainer:
             avg_train_loss_g = tr_g_loss / len(self.train_dataloader)
             avg_train_loss_d = tr_d_loss / len(self.train_dataloader)
             if log_env:
-                log_env['train/generator_loss'] = avg_train_loss_g
-                log_env['train/discriminator_loss'] = avg_train_loss_d
+                log_env['train/generator_loss'].log(avg_train_loss_g)
+                log_env['train/discriminator_loss'].log(avg_train_loss_d)
         return avg_train_loss_g, avg_train_loss_d
 
     @torch.no_grad()
@@ -174,13 +174,14 @@ class GANTrainer:
         avg_test_loss = total_test_loss / len(self.valid_dataloader)
         avg_test_loss = avg_test_loss.item()
         # Record all statistics from this epoch.
+        _dct = {
+            'epoch': epoch_i + 1,
+            'Training Loss generator': generator_loss,
+            'Training Loss discriminator': discriminator_loss,
+            'discriminator_loss': avg_test_loss,
+            'discriminator_accuracy': test_accuracy,
+        }
         self.training_stats.append(
-            {
-                'epoch': epoch_i + 1,
-                'Training Loss generator': generator_loss,
-                'Training Loss discriminator': discriminator_loss,
-                'Valid. Loss': avg_test_loss,
-                'Valid. Accur.': test_accuracy,
-            }
+            _dct
         )
-        return
+        return _dct
