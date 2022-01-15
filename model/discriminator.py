@@ -19,9 +19,8 @@ class Discriminator(BaseModel):
 
     def forward(self, input_ids, input_mask, external_states=None):
         model_output = self.backbone(input_ids, attention_mask=input_mask)
-        hidden_states = model_output[-1]
-        if len(hidden_states.shape) >= 3:
-            hidden_states = hidden_states[0]
+        # hidden_states = model_output[-1]
+        hidden_states = model_output.last_hidden_state[:, 0, :]
         if external_states is not None:
             hidden_states = torch.cat([hidden_states, external_states], dim=0)
         hidden_states = self.input_dropout(hidden_states)
