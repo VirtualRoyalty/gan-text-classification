@@ -42,6 +42,6 @@ class Discriminator(BaseModel):
             hidden_states = torch.cat([hidden_states, external_states], dim=0)
         hidden_states = self.input_dropout(hidden_states)
         last_hidden_states = self.layers(hidden_states)
-        logits = self.to_logits(last_states)
+        logits = self.to_logits(last_hidden_states)
         probs = self.softmax(logits)
         return last_hidden_states, logits, probs
