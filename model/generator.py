@@ -16,7 +16,8 @@ class Generator(BaseModel):
         for i in range(len(hidden_sizes) - 1):
             layers.extend([nn.Linear(hidden_sizes[i], hidden_sizes[i + 1]),
                            nn.LeakyReLU(0.2, inplace=True),
-                           nn.Dropout(dropout_rate)])
+                           nn.Dropout(dropout_rate),
+                           nn.BatchNorm1d(hidden_sizes[i])])
         layers.append(nn.Linear(hidden_sizes[-1], output_size))
         self.layers = nn.Sequential(*layers)
 
