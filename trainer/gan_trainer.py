@@ -21,6 +21,8 @@ class GANTrainer:
                  generator_weight: float = 1.0,
                  cheat_rate_weight: float = 1.0,
                  feature_sim_weight: float = 1.0,
+                 supervised_weight: float = 1.0,
+                 unsupervised_weight: float = 1.0,
                  device: torch.device = None,
                  *args, **kwargs):
         self.config = config
@@ -39,6 +41,8 @@ class GANTrainer:
         self.generator_weight = generator_weight
         self.cheat_rate_weight = cheat_rate_weight
         self.feature_sim_weight = feature_sim_weight
+        self.supervised_weight = supervised_weight
+        self.unsupervised_weight = unsupervised_weight
         pass
 
     def train_epoch(self, log_env=None) -> Tuple[float, float]:
@@ -95,7 +99,8 @@ class GANTrainer:
                 supervised_loss = torch.div(torch.sum(per_example_loss.to(self.device)), labeled_example_count)
             unsupervised_real_loss = -1 * torch.mean(torch.log(1 - real_probs[:, -1] + self.config['epsilon']))
             unsupervised_fake_loss = -1 * torch.mean(torch.log(fake_probs[:, -1] + self.config['epsilon']))
-            discriminator_loss = supervised_loss + unsupervised_real_loss + unsupervised_fake_loss
+            discriminator_loss = self.supervised_weight * supervised_loss + \
+                                 self.unsupervised_weight * (unsupervised_real_loss + unsupervised_fake_loss)
             discriminator_loss *= self.discriminator_weight
 
             # Avoid gradient accumulation
