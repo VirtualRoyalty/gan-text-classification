@@ -17,6 +17,8 @@ class GANTrainer:
                  generator_optimizer, discriminator_optimizer,
                  scheduler_d: torch.optim.lr_scheduler.LambdaLR = None,
                  scheduler_g: torch.optim.lr_scheduler.LambdaLR = None,
+                 discriminator_weight: float = 1.0,
+                 generator_weight: float = 1.0,
                  device: torch.device = None):
         self.config = config
         self.backbone = backbone
@@ -30,6 +32,8 @@ class GANTrainer:
         self.scheduler_g = scheduler_g
         self.device = device
         self.training_stats = []
+        self.discriminator_weight = discriminator_weight
+        self.generator_weight = generator_weight
         pass
 
     def train_epoch(self, log_env=None) -> Tuple[float, float]:
@@ -64,16 +68,17 @@ class GANTrainer:
             real_logits, fake_logits = torch.split(logits, self.config['batch_size'])
             real_probs, fake_probs = torch.split(probs, self.config['batch_size'])
 
-            # Generator loss estimation
+            # generator loss estimation
             cheat_rate_loss = -1 * torch.mean(torch.log(1 - fake_probs[:, -1] + self.config['epsilon']))
             feature_sim_loss = torch.mean(torch.pow(torch.mean(real_states, dim=0) - torch.mean(fake_states, dim=0), 2))
             generator_loss = cheat_rate_loss + feature_sim_loss
+            generator_loss *= self.generator_weight
 
-            # Disciminator loss estimation
+            # discriminator loss estimation
             logits = real_logits[:, 0:-1]
             log_probs = F.log_softmax(logits, dim=-1)
             # The discriminator provides an output for labeled and unlabeled real data
-            # so the loss evaluated for unlabeled data is ignored (masked)
+            # so the loss evaluated for unlabeled data is ignored (masked_select)
             label2one_hot = torch.nn.functional.one_hot(b_labels, self.config['num_labels'])
             per_example_loss = -torch.sum(label2one_hot * log_probs, dim=-1)
             per_example_loss = torch.masked_select(per_example_loss, b_label_mask.to(self.device))
@@ -87,6 +92,7 @@ class GANTrainer:
             unsupervised_real_loss = -1 * torch.mean(torch.log(1 - real_probs[:, -1] + self.config['epsilon']))
             unsupervised_fake_loss = -1 * torch.mean(torch.log(fake_probs[:, -1] + self.config['epsilon']))
             discriminator_loss = supervised_loss + unsupervised_real_loss + unsupervised_fake_loss
+            discriminator_loss *= self.discriminator_weight
 
             # Avoid gradient accumulation
             self.generator_optimizer.zero_grad()
