@@ -91,7 +91,7 @@ class GANTrainer:
             # Avoid gradient accumulation
             self.generator_optimizer.zero_grad()
             self.discriminator_optimizer.zero_grad()
-            # Calculate weigth updates
+            # Calculate weights updates
             # retain_graph=True is required since the underlying graph will be deleted after backward
             generator_loss.backward(retain_graph=True)
             discriminator_loss.backward()
