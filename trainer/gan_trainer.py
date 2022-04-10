@@ -19,7 +19,10 @@ class GANTrainer:
                  scheduler_g: torch.optim.lr_scheduler.LambdaLR = None,
                  discriminator_weight: float = 1.0,
                  generator_weight: float = 1.0,
-                 device: torch.device = None):
+                 cheat_rate_weight: float = 1.0,
+                 feature_sim_weight: float = 1.0,
+                 device: torch.device = None,
+                 *args, **kwargs):
         self.config = config
         self.backbone = backbone
         self.generator = generator
@@ -34,6 +37,8 @@ class GANTrainer:
         self.training_stats = []
         self.discriminator_weight = discriminator_weight
         self.generator_weight = generator_weight
+        self.cheat_rate_weight = cheat_rate_weight
+        self.feature_sim_weight = feature_sim_weight
         pass
 
     def train_epoch(self, log_env=None) -> Tuple[float, float]:
@@ -71,14 +76,13 @@ class GANTrainer:
             # generator loss estimation
             cheat_rate_loss = -1 * torch.mean(torch.log(1 - fake_probs[:, -1] + self.config['epsilon']))
             feature_sim_loss = torch.mean(torch.pow(torch.mean(real_states, dim=0) - torch.mean(fake_states, dim=0), 2))
-            generator_loss = cheat_rate_loss + feature_sim_loss
+            generator_loss = self.cheat_rate_weight * cheat_rate_loss + self.feature_sim_weight * feature_sim_loss
             generator_loss *= self.generator_weight
 
             # discriminator loss estimation
             logits = real_logits[:, 0:-1]
             log_probs = F.log_softmax(logits, dim=-1)
             # The discriminator provides an output for labeled and unlabeled real data
-            # so the loss evaluated for unlabeled data is ignored (masked_select)
             label2one_hot = torch.nn.functional.one_hot(b_labels, self.config['num_labels'])
             per_example_loss = -torch.sum(label2one_hot * log_probs, dim=-1)
             per_example_loss = torch.masked_select(per_example_loss, b_label_mask.to(self.device))
