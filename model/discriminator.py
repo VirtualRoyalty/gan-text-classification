@@ -47,13 +47,13 @@ class Discriminator(BaseModel):
         probs = self.softmax(logits)
         return last_hidden_states, logits, probs
 
-    def predict(self, loader: base.BaseDataLoader) -> tuple:
+    def predict(self, loader: base.BaseDataLoader, device: torch.device) -> tuple:
         predict = []
         ground_true = []
         self.eval()
         for inputs, masks, labels, label_mask in loader:
-            inputs = inputs.to(self.device)
-            masks = masks.to(self.device)
+            inputs = inputs.to(device)
+            masks = masks.to(device)
             _, logits, probs = self(input_ids=inputs, input_mask=masks)
             result = np.argmax(logits[:, 0:-1].cpu().detach().numpy(), axis=1).tolist()
             predict.extend(result)
