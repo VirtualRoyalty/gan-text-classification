@@ -27,7 +27,7 @@ class Trainer:
         self.training_stats = []
         pass
 
-    def train_epoch(self) -> Tuple[float, float]:
+    def train_epoch(self) -> float:
         tr_d_loss = 0
         self.backbone.train()
         self.discriminator.train()
@@ -66,13 +66,12 @@ class Trainer:
             if self.config['apply_scheduler']:
                 self.scheduler_d.step()
                 # self.scheduler_g.step()
-        return None, tr_d_loss
+        return tr_d_loss
 
     @torch.no_grad()
     def validation(self, tr_d_loss, epoch_i, *args, **kwargs):
 
         # Calculate the average loss over all of the batches.
-        # avg_train_loss_g = tr_g_loss / len(self.train_dataloader)
         avg_train_loss_d = tr_d_loss / len(self.train_dataloader)
         print(f"\tAverage training loss discriminator: {avg_train_loss_d:.3f}")
 
