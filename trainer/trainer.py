@@ -68,10 +68,10 @@ class Trainer:
         return tr_d_loss
 
     @torch.no_grad()
-    def validation(self, tr_d_loss, epoch_i, *args, **kwargs):
+    def validation(self, tr_d_loss, epoch_i, vervose=True, *args, **kwargs):
 
         # Calculate the average loss over all of the batches.
-        avg_train_loss_d = tr_d_loss / len(self.train_dataloader)
+        discriminator_loss = tr_d_loss / len(self.train_dataloader)
         print(f"\tAverage training loss discriminator: {avg_train_loss_d:.3f}")
 
         # Put the model in evaluation mode--the dropout layers behave differently
@@ -119,12 +119,16 @@ class Trainer:
         avg_test_loss = total_test_loss / len(self.valid_dataloader)
         avg_test_loss = avg_test_loss.item()
         # Record all statistics from this epoch.
-        self.training_stats.append(
-            {
-                'epoch': epoch_i + 1,
-                'Training Loss discriminator': avg_train_loss_d,
-                'Valid. Loss': avg_test_loss,
-                'Valid. Accur.': test_accuracy,
-            }
-        )
-        return
+        info_dct = {
+            'epoch': epoch_i + 1,
+            'Training Loss discriminator': discriminator_loss,
+            'discriminator_loss': avg_test_loss.item(),
+            'discriminator_accuracy': test_accuracy,
+        }
+        self.training_stats.append(info_dct)
+        if verbose:
+            print(f"\tAverage training loss generetor: {generator_loss:.3f}")
+            print(f"\tAverage training loss discriminator: {discriminator_loss:.3f}")
+            # print("  Training epcoh took: {:}".format(training_time))
+            print("  Accuracy: {0:.3f}".format(test_accuracy))
+        return info_dct
