@@ -23,7 +23,7 @@ class Discriminator(BaseModel):
                            nn.LeakyReLU(0.2, inplace=True),
                            nn.Dropout(dropout_rate)])
         self.layers = nn.Sequential(*layers)
-        self.to_logits = nn.Linear(hidden_sizes[-1], num_labels + 1)
+        self.to_logits = nn.Linear(hidden_sizes[-1], num_labels)
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, input_ids: torch.Tensor = None,
