@@ -72,7 +72,6 @@ class Trainer:
 
         # Calculate the average loss over all of the batches.
         discriminator_loss = tr_d_loss / len(self.train_dataloader)
-        print(f"\tAverage training loss discriminator: {discriminator_loss:.3f}")
 
         # Put the model in evaluation mode--the dropout layers behave differently
         # during evaluation.
@@ -112,7 +111,6 @@ class Trainer:
         all_preds = torch.stack(all_preds).numpy()
         all_labels_ids = torch.stack(all_labels_ids).numpy()
         test_accuracy = np.sum(all_preds == all_labels_ids) / len(all_preds)
-        print("  Accuracy: {0:.3f}".format(test_accuracy))
 
         # Calculate the average loss over all of the batches.
         avg_test_loss = total_test_loss / len(self.valid_dataloader)
