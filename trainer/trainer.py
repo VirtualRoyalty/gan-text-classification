@@ -27,7 +27,7 @@ class Trainer:
         self.training_stats = []
         pass
 
-    def train_epoch(self) -> float:
+    def train_epoch(self, log_env=None) -> float:
         tr_d_loss = 0
         self.backbone.train()
         self.discriminator.train()
@@ -49,22 +49,22 @@ class Trainer:
             per_example_loss = torch.masked_select(per_example_loss, b_label_mask.to(self.device))
             labeled_example_count = per_example_loss.type(torch.float32).numel()
 
-            d_loss = torch.div(torch.sum(per_example_loss.to(self.device)), labeled_example_count)
+            discriminator_loss = torch.div(torch.sum(per_example_loss.to(self.device)), labeled_example_count)
+            if log_env:
+                log_env['train/discriminator_loss'].log(discriminator_loss.item())
 
             # Avoid gradient accumulation
-            # self.generator_optimizer.zero_grad()
             self.discriminator_optimizer.zero_grad()
 
             # Calculate weights updates
-            d_loss.backward()
+            discriminator_loss.backward()
             # Apply modifications
             self.discriminator_optimizer.step()
             # Save the losses to print them later
-            tr_d_loss += d_loss.item()
+            tr_d_loss += discriminator_loss.item()
             # Update the learning rate with the scheduler
             if self.config['apply_scheduler']:
                 self.scheduler_d.step()
-                # self.scheduler_g.step()
         return tr_d_loss
 
     @torch.no_grad()
