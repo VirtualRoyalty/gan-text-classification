@@ -100,7 +100,6 @@ class Trainer:
             with torch.no_grad():
                 # model_outputs = self.backbone(b_input_ids, attention_mask=b_input_mask)
                 _, logits, probs = self.discriminator(input_ids=b_input_ids, input_mask=b_input_mask)
-                logits = logits[:, 0:-1]
                 # Accumulate the test loss.
                 total_test_loss += nll_loss(logits, b_labels)
 
