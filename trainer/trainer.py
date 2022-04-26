@@ -72,7 +72,7 @@ class Trainer:
 
         # Calculate the average loss over all of the batches.
         discriminator_loss = tr_d_loss / len(self.train_dataloader)
-        print(f"\tAverage training loss discriminator: {avg_train_loss_d:.3f}")
+        print(f"\tAverage training loss discriminator: {discriminator_loss:.3f}")
 
         # Put the model in evaluation mode--the dropout layers behave differently
         # during evaluation.
@@ -127,7 +127,6 @@ class Trainer:
         }
         self.training_stats.append(info_dct)
         if verbose:
-            print(f"\tAverage training loss generetor: {generator_loss:.3f}")
             print(f"\tAverage training loss discriminator: {discriminator_loss:.3f}")
             # print("  Training epcoh took: {:}".format(training_time))
             print("  Accuracy: {0:.3f}".format(test_accuracy))
