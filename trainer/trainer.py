@@ -121,7 +121,7 @@ class Trainer:
         info_dct = {
             'epoch': epoch_i + 1,
             'Training Loss discriminator': discriminator_loss,
-            'discriminator_loss': avg_test_loss.item(),
+            'discriminator_loss': avg_test_loss,
             'discriminator_accuracy': test_accuracy,
         }
         self.training_stats.append(info_dct)
