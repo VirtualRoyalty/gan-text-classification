@@ -68,7 +68,7 @@ class Trainer:
         return tr_d_loss
 
     @torch.no_grad()
-    def validation(self, tr_d_loss, epoch_i, vervose=True, *args, **kwargs):
+    def validation(self, tr_d_loss, epoch_i, verbose=True, *args, **kwargs):
 
         # Calculate the average loss over all of the batches.
         discriminator_loss = tr_d_loss / len(self.train_dataloader)
