@@ -69,14 +69,14 @@ class GANTrainer:
                                                               input_mask=b_input_mask,
                                                               external_states=generator_states)
             try:
-                real_states, fake_states = torch.split(hidden_states, self.config['batch_size'])
+                real_states, fake_states = torch.split(hidden_states, b_input_ids.shape[0])
             except Exception as error:
                 print(error)
                 print(len(torch.split(hidden_states, self.config['batch_size'])))
                 continue
-            real_logits, fake_logits = torch.split(logits, self.config['batch_size'])
-            real_probs, fake_probs = torch.split(probs, self.config['batch_size'])
-
+            real_logits, fake_logits = torch.split(logits, b_input_ids.shape[0])
+            real_probs, fake_probs = torch.split(probs, b_input_ids.shape[0])
+            
             # generator loss estimation
             cheat_rate_loss = -1 * torch.mean(torch.log(1 - fake_probs[:, -1] + self.config['epsilon']))
             feature_sim_loss = torch.mean(torch.pow(torch.mean(real_states, dim=0) - torch.mean(fake_states, dim=0), 2))
