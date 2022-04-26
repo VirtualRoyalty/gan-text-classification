@@ -43,7 +43,6 @@ class Trainer:
             hidden_states, logits, probs = self.discriminator(input_ids=b_input_ids,
                                                               input_mask=b_input_mask)
             # Disciminator's loss estimation
-            logits = logits[:, 0:-1]
             log_probs = F.log_softmax(logits, dim=-1)
             label2one_hot = torch.nn.functional.one_hot(b_labels, self.config['num_labels'])
             per_example_loss = -torch.sum(label2one_hot * log_probs, dim=-1)
