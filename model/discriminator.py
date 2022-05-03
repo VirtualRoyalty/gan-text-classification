@@ -65,11 +65,11 @@ class Discriminator(BaseModel):
             ground_true.extend(labels.detach().numpy().tolist())
         return ground_true, predict
 
-    def train(self):
-        if not self.backbone_freeze:
-            self.backbone.train()
-        self.train()
-
-    def eval(self):
-        self.backbone.eval()
-        self.eval()
+    # def train(self):
+    #     if not self.backbone_freeze:
+    #         self.backbone.train()
+    #     self.train()
+    #
+    # def eval(self):
+    #     self.backbone.eval()
+    #     self.eval()
