@@ -9,7 +9,6 @@ from model import Generator, Discriminator
 
 class GANTrainer:
     def __init__(self, config: Dict,
-                 backbone: AutoModel,
                  discriminator: Discriminator,
                  generator: Generator,
                  train_dataloader: torch.utils.data.DataLoader,
@@ -26,7 +25,6 @@ class GANTrainer:
                  device: torch.device = None,
                  *args, **kwargs):
         self.config = config
-        self.backbone = backbone
         self.generator = generator
         self.discriminator = discriminator
         self.train_dataloader = train_dataloader
@@ -48,7 +46,6 @@ class GANTrainer:
     def train_epoch(self, log_env=None) -> Tuple[float, float]:
         total_g_loss = 0
         total_d_loss = 0
-        self.backbone.train()
         self.generator.train()
         self.discriminator.train()
 
@@ -135,7 +132,6 @@ class GANTrainer:
     def validation(self, generator_loss, discriminator_loss, epoch_i, verbose=True):
         # Put the model in evaluation mode
         # the dropout layers behave differently during evaluation.
-        self.backbone.eval()
         self.discriminator.eval()
         self.generator.eval()
 

@@ -10,14 +10,13 @@ from typing import Dict, Tuple
 
 
 class Trainer:
-    def __init__(self, config: Dict, backbone: AutoModel,
+    def __init__(self, config: Dict,
                  discriminator: Discriminator,
                  train_dataloader, valid_dataloader,
                  discriminator_optimizer, scheduler_d=None,
                  device=None):
 
         self.config = config
-        self.backbone = backbone
         self.discriminator = discriminator
         self.train_dataloader = train_dataloader
         self.valid_dataloader = valid_dataloader
@@ -29,7 +28,6 @@ class Trainer:
 
     def train_epoch(self, log_env=None) -> float:
         tr_d_loss = 0
-        self.backbone.train()
         self.discriminator.train()
 
         for step, batch in enumerate(self.train_dataloader):
@@ -75,7 +73,6 @@ class Trainer:
 
         # Put the model in evaluation mode--the dropout layers behave differently
         # during evaluation.
-        self.backbone.eval()
         self.discriminator.eval()
 
         # Tracking variables

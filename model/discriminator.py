@@ -11,10 +11,12 @@ class Discriminator(BaseModel):
                  hidden_size: int = 512,
                  hidden_layers: int = 1,
                  num_labels: int = 10,
-                 dropout_rate: float = 0.1):
+                 dropout_rate: float = 0.1,
+                 backbone_freeze : bool = False):
         super(Discriminator, self).__init__()
         # define model layers
         self.backbone = backbone
+        self.backbone = backbone_freeze
         self.input_dropout = nn.Dropout(p=dropout_rate)
         hidden_sizes = [input_size] + [hidden_size] * hidden_layers
         layers = []
@@ -61,3 +63,12 @@ class Discriminator(BaseModel):
             predict.extend(result)
             ground_true.extend(labels.detach().numpy().tolist())
         return ground_true, predict
+
+    def train(self):
+        if not self.backbone_freeze:
+            self.backbone.train()
+        self.train()
+
+    def eval(self):
+        self.backbone.eval()
+        self.eval()
