@@ -12,12 +12,13 @@ class Discriminator(BaseModel):
                  hidden_layers: int = 1,
                  num_labels: int = 10,
                  dropout_rate: float = 0.1,
-                 backbone_freeze : bool = False):
+                 backbone_freeze: bool = False):
         super(Discriminator, self).__init__()
         # define model layers
         self.backbone = backbone
-        self.backbone = backbone_freeze
+        self.backbone_freeze = backbone_freeze
         self.input_dropout = nn.Dropout(p=dropout_rate)
+
         hidden_sizes = [input_size] + [hidden_size] * hidden_layers
         layers = []
         for i in range(len(hidden_sizes) - 1):
@@ -58,7 +59,7 @@ class Discriminator(BaseModel):
             masks = masks.to(device)
             _, logits, probs = self(input_ids=inputs, input_mask=masks)
             if gan:
-                logits = logits[:, 0:-1]
+                logits = logits[:, :-1]
             result = np.argmax(logits.cpu().detach().numpy(), axis=1).tolist()
             predict.extend(result)
             ground_true.extend(labels.detach().numpy().tolist())
