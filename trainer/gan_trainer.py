@@ -58,7 +58,7 @@ class GANTrainer:
 
             # Generate fake data that should have the same distribution of the ones
             noise = torch.zeros(b_input_ids.shape[0], self.config['noise_size'], device=self.device)
-            noise = noise.uniform(self.config['noise_range'])
+            noise = noise.uniform_(self.config['noise_range'])
             generator_states = self.generator(noise)
 
             # Generate the output of the Discriminator for real and fake data.
