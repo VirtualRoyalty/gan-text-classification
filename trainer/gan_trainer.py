@@ -23,6 +23,7 @@ class GANTrainer:
                  supervised_weight: float = 1.0,
                  unsupervised_weight: float = 1.0,
                  device: torch.device = None,
+                 conditional_generator: bool = False,
                  *args, **kwargs):
         self.config = config
         self.generator = generator
@@ -41,6 +42,7 @@ class GANTrainer:
         self.feature_sim_weight = feature_sim_weight
         self.supervised_weight = supervised_weight
         self.unsupervised_weight = unsupervised_weight
+        self.conditional_generator = conditional_generator
         pass
 
     def train_epoch(self, log_env=None) -> Tuple[float, float]:
@@ -59,7 +61,12 @@ class GANTrainer:
             # Generate fake data that should have the same distribution of the ones
             noise = torch.zeros(b_input_ids.shape[0], self.config['noise_size'], device=self.device)
             noise = noise.uniform_(*self.config['noise_range'])
-            generator_states = self.generator(noise)
+            if self.conditional_generator:
+                random_labels = np.random.randint(0, self.config['num_labels'], self.config['batch_size'])
+                random_labels = torch.nn.functional.one_hot(random_labels, self.config['num_labels'])
+                generator_states = self.generator(noise, random_labels)
+            else:
+                generator_states = self.generator(noise)
 
             # Generate the output of the Discriminator for real and fake data.
             hidden_states, logits, probs = self.discriminator(input_ids=b_input_ids,
@@ -73,7 +80,7 @@ class GANTrainer:
                 continue
             real_logits, fake_logits = torch.split(logits, b_input_ids.shape[0])
             real_probs, fake_probs = torch.split(probs, b_input_ids.shape[0])
-            
+
             # generator loss estimation
             cheat_rate_loss = -1 * torch.mean(torch.log(1 - fake_probs[:, -1] + self.config['epsilon']))
             feature_sim_loss = torch.mean(torch.pow(torch.mean(real_states, dim=0) - torch.mean(fake_states, dim=0), 2))
