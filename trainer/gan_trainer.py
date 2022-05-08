@@ -23,7 +23,6 @@ class GANTrainer:
                  supervised_weight: float = 1.0,
                  unsupervised_weight: float = 1.0,
                  device: torch.device = None,
-                 conditional_generator: bool = False,
                  *args, **kwargs):
         self.config = config
         self.generator = generator
@@ -42,7 +41,6 @@ class GANTrainer:
         self.feature_sim_weight = feature_sim_weight
         self.supervised_weight = supervised_weight
         self.unsupervised_weight = unsupervised_weight
-        self.conditional_generator = conditional_generator
         pass
 
     def train_epoch(self, log_env=None) -> Tuple[float, float]:
@@ -61,7 +59,7 @@ class GANTrainer:
             # Generate fake data that should have the same distribution of the ones
             noise = torch.zeros(b_input_ids.shape[0], self.config['noise_size'], device=self.device)
             noise = noise.uniform_(*self.config['noise_range'])
-            if self.conditional_generator:
+            if self.config['conditional_generator']:
                 random_labels = np.random.randint(0, self.config['num_labels'], self.config['batch_size'])
                 random_labels = torch.nn.functional.one_hot(random_labels, self.config['num_labels'])
                 generator_states = self.generator(noise, random_labels)
