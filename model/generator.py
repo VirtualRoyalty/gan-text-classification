@@ -39,7 +39,7 @@ class ConditionalGenerator(BaseModel):
         super(ConditionalGenerator, self).__init__()
         # define model layers
         layers = []
-        self.label_embedding = nn.Embedding(num_labels, num_labels)
+        self.label_embedding = nn.Embedding(num_labels)
         hidden_sizes = [noise_size + num_labels] + [hidden_size] * hidden_layers
         for i in range(len(hidden_sizes) - 1):
             layers.extend([nn.Linear(hidden_sizes[i], hidden_sizes[i + 1]),
