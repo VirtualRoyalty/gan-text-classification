@@ -60,7 +60,8 @@ class GANTrainer:
             noise = torch.zeros(b_input_ids.shape[0], self.config['noise_size'], device=self.device)
             noise = noise.uniform_(*self.config['noise_range'])
             if self.config['conditional_generator']:
-                random_labels = np.random.randint(0, self.config['num_labels'], self.config['batch_size'])
+                random_labels = torch.from_numpy(np.random.randint(0, self.config['num_labels'],
+                                                                   self.config['batch_size'], dtype='int'))
                 random_labels = torch.nn.functional.one_hot(random_labels, self.config['num_labels'])
                 generator_states = self.generator(noise, random_labels)
             else:
