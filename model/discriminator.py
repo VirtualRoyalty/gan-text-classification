@@ -45,6 +45,8 @@ class Discriminator(BaseModel):
             # add generator input to hidden states
             if external_states is not None:
                 hidden_states = torch.cat([trf_states, external_states], dim=0)
+            else:
+                hidden_states = trf_states
         else:
             hidden_states = external_states
         hidden_states = self.input_dropout(hidden_states)
