@@ -49,6 +49,7 @@ class Discriminator(BaseModel):
                 hidden_states = trf_states
         else:
             hidden_states = external_states
+            trf_states = external_states
         hidden_states = self.input_dropout(hidden_states)
         last_hidden_states = self.layers(hidden_states)
         logits = self.to_logits(last_hidden_states)
