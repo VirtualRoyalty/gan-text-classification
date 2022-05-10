@@ -16,12 +16,6 @@ class GANTrainer:
                  generator_optimizer, discriminator_optimizer,
                  scheduler_d: torch.optim.lr_scheduler.LambdaLR = None,
                  scheduler_g: torch.optim.lr_scheduler.LambdaLR = None,
-                 discriminator_weight: float = 1.0,
-                 generator_weight: float = 1.0,
-                 cheat_rate_weight: float = 1.0,
-                 feature_sim_weight: float = 1.0,
-                 supervised_weight: float = 1.0,
-                 unsupervised_weight: float = 1.0,
                  device: torch.device = None,
                  *args, **kwargs):
         self.config = config
@@ -35,12 +29,6 @@ class GANTrainer:
         self.scheduler_g = scheduler_g
         self.device = device
         self.training_stats = []
-        self.discriminator_weight = discriminator_weight
-        self.generator_weight = generator_weight
-        self.cheat_rate_weight = cheat_rate_weight
-        self.feature_sim_weight = feature_sim_weight
-        self.supervised_weight = supervised_weight
-        self.unsupervised_weight = unsupervised_weight
         pass
 
     def train_epoch(self, log_env=None) -> Tuple[float, float]:
@@ -65,7 +53,7 @@ class GANTrainer:
                 generator_states = self.generator(noise, rand_labels)
             else:
                 generator_states = self.generator(noise)
-                
+
             if self.config['NDA'] and not self.config['conditional_generator']:
                 if self.config['nda_alpha'] is None:
                     self.config['nda_alpha'] = 0.9
@@ -88,8 +76,9 @@ class GANTrainer:
             # generator loss estimation
             cheat_rate_loss = -1 * torch.mean(torch.log(1 - fake_probs[:, -1] + self.config['epsilon']))
             feature_sim_loss = torch.mean(torch.pow(torch.mean(real_states, dim=0) - torch.mean(fake_states, dim=0), 2))
-            generator_loss = self.cheat_rate_weight * cheat_rate_loss + self.feature_sim_weight * feature_sim_loss
-            generator_loss *= self.generator_weight
+            generator_loss = self.config['cheat_rate_weight'] * cheat_rate_loss + \
+                             self.config['feature_sim_weight'] * feature_sim_loss
+            generator_loss *= self.config['generator_weight']
 
             # discriminator loss estimation
             logits = real_logits[:, 0:-1]
@@ -107,9 +96,9 @@ class GANTrainer:
                 supervised_loss = torch.div(torch.sum(per_example_loss.to(self.device)), labeled_example_count)
             unsupervised_real_loss = -1 * torch.mean(torch.log(1 - real_probs[:, -1] + self.config['epsilon']))
             unsupervised_fake_loss = -1 * torch.mean(torch.log(fake_probs[:, -1] + self.config['epsilon']))
-            discriminator_loss = self.supervised_weight * supervised_loss + \
-                                 self.unsupervised_weight * (unsupervised_real_loss + unsupervised_fake_loss)
-            discriminator_loss *= self.discriminator_weight
+            discriminator_loss = self.config['supervised_weight'] * supervised_loss + \
+                                 self.config['unsupervised_weight'] * (unsupervised_real_loss + unsupervised_fake_loss)
+            discriminator_loss *= self.config['discriminator_weight']
 
             # Avoid gradient accumulation
             self.generator_optimizer.zero_grad()
