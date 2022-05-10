@@ -36,19 +36,22 @@ class Discriminator(BaseModel):
         if input_ids is None and external_states is None:
             raise AssertionError('Empty input: input_ids and external states are empty')
 
-        # get last hidden state of transformer backbone
-        trf_output = self.backbone(input_ids, attention_mask=input_mask)
-        # get [CLS] token embedding as sentence embedding
-        hidden_states = trf_output.last_hidden_state[:, 0, :]
+        if input_ids is not None:
+            # get last hidden state of transformer backbone
+            trf_output = self.backbone(input_ids, attention_mask=input_mask)
+            # get [CLS] token embedding as sentence embedding
+            trf_states = trf_output.last_hidden_state[:, 0, :]
 
-        # add generator input to hidden states
-        if external_states is not None:
-            hidden_states = torch.cat([hidden_states, external_states], dim=0)
+            # add generator input to hidden states
+            if external_states is not None:
+                hidden_states = torch.cat([trf_states, external_states], dim=0)
+        else:
+            hidden_states = external_states
         hidden_states = self.input_dropout(hidden_states)
         last_hidden_states = self.layers(hidden_states)
         logits = self.to_logits(last_hidden_states)
         probs = self.softmax(logits)
-        return last_hidden_states, logits, probs
+        return last_hidden_states, logits, probs, trf_states
 
     def predict(self, loader: base.BaseDataLoader, device: torch.device, gan=True) -> tuple:
         predict = []
@@ -57,19 +60,10 @@ class Discriminator(BaseModel):
         for inputs, masks, labels, label_mask in loader:
             inputs = inputs.to(device)
             masks = masks.to(device)
-            _, logits, probs = self(input_ids=inputs, input_mask=masks)
+            _, logits, probs, _ = self(input_ids=inputs, input_mask=masks)
             if gan:
                 logits = logits[:, :-1]
             result = np.argmax(logits.cpu().detach().numpy(), axis=1).tolist()
             predict.extend(result)
             ground_true.extend(labels.detach().numpy().tolist())
         return ground_true, predict
-
-    # def train(self):
-    #     if not self.backbone_freeze:
-    #         self.backbone.train()
-    #     self.train()
-    #
-    # def eval(self):
-    #     self.backbone.eval()
-    #     self.eval()

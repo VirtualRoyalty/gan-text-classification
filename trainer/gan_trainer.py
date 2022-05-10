@@ -44,6 +44,10 @@ class GANTrainer:
             b_labels = batch[2].to(self.device)
             b_label_mask = batch[3].to(self.device)
 
+            # Generate the output of the Discriminator for real data
+            real_states, real_logits, real_probs, enc_states = self.discriminator(input_ids=b_input_ids,
+                                                                                  input_mask=b_input_mask)
+
             # Generate fake data that should have the same distribution of the ones
             noise = torch.zeros(b_input_ids.shape[0], self.config['noise_size'], device=self.device)
             noise = noise.uniform_(*self.config['noise_range'])
@@ -58,20 +62,23 @@ class GANTrainer:
                 if self.config['nda_alpha'] is None:
                     self.config['nda_alpha'] = 0.9
                 alpha = min(np.random.normal(self.config['nda_alpha'], 0.1), 0.95)
-                generator_states = alpha * generator_states + (1 - alpha) * b_input_ids
+                generator_states = alpha * generator_states + (1 - alpha) * enc_states
 
-            # Generate the output of the Discriminator for real and fake data.
-            hidden_states, logits, probs = self.discriminator(input_ids=b_input_ids,
-                                                              input_mask=b_input_mask,
-                                                              external_states=generator_states)
-            try:
-                real_states, fake_states = torch.split(hidden_states, b_input_ids.shape[0])
-            except Exception as error:
-                print(error)
-                print(len(torch.split(hidden_states, self.config['batch_size'])))
-                continue
-            real_logits, fake_logits = torch.split(logits, b_input_ids.shape[0])
-            real_probs, fake_probs = torch.split(probs, b_input_ids.shape[0])
+            # Generate the output of the Discriminator for fake data
+            fake_states, fake_logits, fake_probs, _ = self.discriminator(external_states=generator_states)
+
+            # Generate the output of the Discriminator for real and fake data
+            # hidden_states, logits, probs, enc_states = self.discriminator(input_ids=b_input_ids,
+            #                                                               input_mask=b_input_mask,
+            #                                                               external_states=generator_states)
+            # try:
+            #     real_states, fake_states = torch.split(hidden_states, b_input_ids.shape[0])
+            # except Exception as error:
+            #     print(error)
+            #     print(len(torch.split(hidden_states, self.config['batch_size'])))
+            #     continue
+            # real_logits, fake_logits = torch.split(logits, b_input_ids.shape[0])
+            # real_probs, fake_probs = torch.split(probs, b_input_ids.shape[0])
 
             # generator loss estimation
             cheat_rate_loss = -1 * torch.mean(torch.log(1 - fake_probs[:, -1] + self.config['epsilon']))
@@ -152,7 +159,7 @@ class GANTrainer:
             # the forward pass, since this is only needed for backprop (training).
             with torch.no_grad():
                 # Accumulate the test loss.
-                _, logits, probs = self.discriminator(input_ids=b_input_ids, input_mask=b_input_mask)
+                _, logits, probs, _ = self.discriminator(input_ids=b_input_ids, input_mask=b_input_mask)
                 filtered_logits = logits[:, 0:-1]
                 total_test_loss += nll_loss(filtered_logits, b_labels)
             # Accumulate the predictions and the input labels

@@ -38,7 +38,7 @@ class Trainer:
             b_label_mask = batch[3].to(self.device)
 
             # Generate the output of the Discriminator for real and fake data.
-            hidden_states, logits, probs = self.discriminator(input_ids=b_input_ids,
+            hidden_states, logits, probs, _ = self.discriminator(input_ids=b_input_ids,
                                                               input_mask=b_input_mask)
             # Disciminator's loss estimation
             log_probs = F.log_softmax(logits, dim=-1)
@@ -95,7 +95,7 @@ class Trainer:
             # the forward pass, since this is only needed for backprop (training).
             with torch.no_grad():
                 # model_outputs = self.backbone(b_input_ids, attention_mask=b_input_mask)
-                _, logits, probs = self.discriminator(input_ids=b_input_ids, input_mask=b_input_mask)
+                _, logits, probs, _ = self.discriminator(input_ids=b_input_ids, input_mask=b_input_mask)
                 # Accumulate the test loss.
                 total_test_loss += nll_loss(logits, b_labels)
 
