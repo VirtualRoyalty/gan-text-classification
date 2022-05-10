@@ -57,8 +57,8 @@ class GANTrainer:
             if self.config['NDA'] and not self.config['conditional_generator']:
                 if self.config['nda_alpha'] is None:
                     self.config['nda_alpha'] = 0.9
-                lam = min(np.random.normal(self.config['nda_alpha'], 0.1), 0.95)
-                generator_states = lam * generator_states + (1 - lam) * b_input_ids
+                alpha = min(np.random.normal(self.config['nda_alpha'], 0.1), 0.95)
+                generator_states = alpha * generator_states + (1 - alpha) * b_input_ids
 
             # Generate the output of the Discriminator for real and fake data.
             hidden_states, logits, probs = self.discriminator(input_ids=b_input_ids,
