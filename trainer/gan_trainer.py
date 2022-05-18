@@ -27,6 +27,8 @@ class GANTrainer:
         self.discriminator_optimizer = discriminator_optimizer
         self.scheduler_d = scheduler_d
         self.scheduler_g = scheduler_g
+        self.noise_type = config.get('noise_type', None)
+        self.label2stat = config.get('label2stat', None)
         self.device = device
         self.training_stats = []
         pass
@@ -50,7 +52,31 @@ class GANTrainer:
 
             # Generate fake data that should have the same distribution of the ones
             noise = torch.zeros(b_input_ids.shape[0], self.config['noise_size'], device=self.device)
-            noise = noise.uniform_(*self.config['noise_range'])
+
+            if self.noise_type == 'uniform':
+                noise = noise.uniform_(*self.config['noise_range'])
+            elif self.noise_type == 'normal':
+                noise = noise.normal_(*self.config['noise_range'])
+            elif self.noise_type == 'conditional':
+                noises = []
+                K = 8
+                for i in range(np.ceil(b_input_ids.shape[0] / K)):
+                    if b_input_ids.shape[0] - (i * K) < K:
+                        k = b_input_ids.shape[0] - (i * K)
+                    else:
+                        k = K
+                    _label = np.random.randint(1, self.config['num_labels']-1)
+                    _noise = np.random.multivariate_normal(
+                            self.label2stat[_label]['mean'],
+                            self.label2stat[_label]['cov'], size=k)
+                    noises.append(_noise)
+                    if k != K:
+                        break
+                noise = np.vstack(noises).astype('float32')
+                noise = torch.from_numpy(noise).to(self.device)
+            else:
+                noise = noise.uniform_(*self.config['noise_range'])
+
             if self.config['conditional_generator']:
                 rand_labels = np.random.randint(0, self.config['num_labels'], b_input_ids.shape[0], dtype='int')
                 rand_labels = torch.from_numpy(rand_labels).to(self.device)
