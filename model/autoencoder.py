@@ -1,7 +1,7 @@
 import torch
 
 from base import *
-from generator import Generator
+from .generator import Generator
 
 
 class Autoencoder(BaseModel):
