@@ -65,7 +65,7 @@ class GANTrainer:
                         k = b_input_ids.shape[0] - (i * K)
                     else:
                         k = K
-                    _label = np.random.randint(1, self.config['num_labels']-1)
+                    _label = np.random.choice(list(self.label2stat.keys()))
                     _noise = np.random.multivariate_normal(
                             self.label2stat[_label]['mean'],
                             self.label2stat[_label]['cov'], size=k)
@@ -92,19 +92,6 @@ class GANTrainer:
 
             # Generate the output of the Discriminator for fake data
             fake_states, fake_logits, fake_probs, _ = self.discriminator(external_states=generator_states)
-
-            # Generate the output of the Discriminator for real and fake data
-            # hidden_states, logits, probs, enc_states = self.discriminator(input_ids=b_input_ids,
-            #                                                               input_mask=b_input_mask,
-            #                                                               external_states=generator_states)
-            # try:
-            #     real_states, fake_states = torch.split(hidden_states, b_input_ids.shape[0])
-            # except Exception as error:
-            #     print(error)
-            #     print(len(torch.split(hidden_states, self.config['batch_size'])))
-            #     continue
-            # real_logits, fake_logits = torch.split(logits, b_input_ids.shape[0])
-            # real_probs, fake_probs = torch.split(probs, b_input_ids.shape[0])
 
             # generator loss estimation
             cheat_rate_loss = -1 * torch.mean(torch.log(1 - fake_probs[:, -1] + self.config['epsilon']))
