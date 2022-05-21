@@ -1,10 +1,14 @@
 import math
 import datetime
+import numpy as np
 from typing import Dict, Tuple, List
+
+import torch
 from transformers import AutoTokenizer
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 
 from base import *
+
 
 def generate_data_loader(input_examples,
                          label_masks,
@@ -13,7 +17,8 @@ def generate_data_loader(input_examples,
                          tokenizer: AutoTokenizer,
                          max_seq_length: int,
                          do_shuffle: bool = False,
-                         balance_label_examples: bool = False) -> torch.utils.data.DataLoader:
+                         balance_label_examples: bool = False,
+                         return_ids: bool = False) -> torch.utils.data.DataLoader:
     """
     Generate a Dataloader given the input examples, eventually masked if they are
     to be considered NOT labeled.
@@ -61,6 +66,7 @@ def generate_data_loader(input_examples,
     for sent in input_ids:
         att_mask = [int(token_id > 0) for token_id in sent]
         input_mask_array.append(att_mask)
+
     # Convertion to Tensor
     input_ids = torch.tensor(input_ids)
     input_mask_array = torch.tensor(input_mask_array)
@@ -68,7 +74,11 @@ def generate_data_loader(input_examples,
     label_mask_array = torch.tensor(label_mask_array)
 
     # Building the TensorDataset
-    dataset = TensorDataset(input_ids, input_mask_array, label_id_array, label_mask_array)
+    if return_ids:
+        ids = torch.tensor(np.arange(input_ids.shape[0]))
+        dataset = TensorDataset(ids, input_ids, input_mask_array, label_id_array, label_mask_array)
+    else:
+        dataset = TensorDataset(input_ids, input_mask_array, label_id_array, label_mask_array)
     if do_shuffle:
         sampler = RandomSampler
     else:
