@@ -83,7 +83,7 @@ class GANDistilTrainer:
             hard_states = self.backbone(hard_samples, attention_mask=b_input_mask).last_hidden_state[:, 0, :]
 
             # generator loss estimation
-            dist_loss = self.triplet_loss_fn(enc_states, hard_states, easy_states)
+            dist_loss = self.triplet_loss_fn(generator_states, hard_states, easy_states)
             cheat_rate_loss = -1 * torch.mean(torch.log(1 - fake_probs[:, -1] + self.config['epsilon']))
             # feature_sim_loss = torch.mean(torch.pow(torch.mean(real_states, dim=0) - torch.mean(fake_states, dim=0), 2))
             generator_loss = self.config['cheat_rate_weight'] * cheat_rate_loss + dist_loss
