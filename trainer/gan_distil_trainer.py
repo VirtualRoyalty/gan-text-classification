@@ -78,7 +78,7 @@ class GANDistilTrainer:
 
             # get easy end hard samples
             easy_ids, hard_ids = self.get_hard_easy_ids(b_labels)
-            easy_samples, hard_samples = self.train_tensor[easy_ids], self.train_tensor[hard_ids]
+            easy_samples, hard_samples = self.train_tensor[easy_ids].to(self.device), self.train_tensor[hard_ids].to(self.device)
             easy_states = self.backbone(easy_samples, attention_mask=b_input_mask).last_hidden_state[:, 0, :]
             hard_states = self.backbone(hard_samples, attention_mask=b_input_mask).last_hidden_state[:, 0, :]
 
