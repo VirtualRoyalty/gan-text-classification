@@ -86,13 +86,12 @@ class GANDistilTrainer:
             del easy_samples
 
             hard_states = self.backbone(hard_samples, attention_mask=b_input_mask).last_hidden_state[:, 0, :]
-
             del hard_samples
 
             # generator loss estimation
             dist_loss = self.triplet_loss_fn(generator_states, hard_states, easy_states)
             del easy_states
-            del hard_samples
+            del hard_states
             del generator_states
             torch.cuda.empty_cache()
 
