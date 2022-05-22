@@ -1,30 +1,40 @@
 import torch
 import numpy as np
-import torch.nn.functional as F
-# import time
-# from base import BaseTrainer
-# from utils import inf_loop, MetricTracker
-from transformers import AutoModel
-from model import Generator, Discriminator
 from typing import Dict, Tuple
+import torch.nn.functional as F
+from transformers import AutoModel, get_constant_schedule_with_warmup
+
+from model import  Discriminator
 
 
 class Trainer:
     def __init__(self, config: Dict,
                  discriminator: Discriminator,
-                 train_dataloader, valid_dataloader,
-                 discriminator_optimizer, scheduler_d=None,
+                 train_dataloader: torch.utils.data.DataLoader,
+                 valid_dataloader: torch.utils.data.DataLoader,
                  device=None):
 
-        self.config = config
         self.discriminator = discriminator
         self.train_dataloader = train_dataloader
         self.valid_dataloader = valid_dataloader
-        self.discriminator_optimizer = discriminator_optimizer
-        self.scheduler_d = scheduler_d
         self.device = device
         self.training_stats = []
-        pass
+
+        # define trainable parameters and optimizer
+        if config['frozen_backbone']:
+            self.freeze_backbone()
+        d_vars = [p for p in self.discriminator.parameters() if p.requires_grad]
+        print(f'Trainable layers {len(d_vars)}')
+        self.optimizer = torch.optim.AdamW(d_vars, lr=config['learning_rate_discriminator'])
+
+        # define scheduler
+        if config['apply_scheduler']:
+            config['num_train_steps'] = config['num_train_examples'] / config['batch_size'] * config['num_train_epochs']
+            config['num_train_steps'] = int(config['num_train_steps'])
+            config['num_warmup_steps_d'] = int(config['num_train_steps'] * config['warmup_proportion_d'])
+            self.scheduler = get_constant_schedule_with_warmup(self.optimizer,
+                                                               num_warmup_steps=config['num_warmup_steps_d'])
+        self.config = config
 
     def train_epoch(self, log_env=None) -> float:
         tr_d_loss = 0
@@ -39,7 +49,7 @@ class Trainer:
 
             # Generate the output of the Discriminator for real and fake data.
             hidden_states, logits, probs, _ = self.discriminator(input_ids=b_input_ids,
-                                                              input_mask=b_input_mask)
+                                                                 input_mask=b_input_mask)
             # Disciminator's loss estimation
             log_probs = F.log_softmax(logits, dim=-1)
             label2one_hot = torch.nn.functional.one_hot(b_labels, self.config['num_labels'])
@@ -52,18 +62,23 @@ class Trainer:
                 log_env['train/discriminator_loss'].log(discriminator_loss.item())
 
             # Avoid gradient accumulation
-            self.discriminator_optimizer.zero_grad()
+            self.optimizer.zero_grad()
 
             # Calculate weights updates
             discriminator_loss.backward()
             # Apply modifications
-            self.discriminator_optimizer.step()
+            self.optimizer.step()
             # Save the losses to print them later
             tr_d_loss += discriminator_loss.item()
             # Update the learning rate with the scheduler
             if self.config['apply_scheduler']:
-                self.scheduler_d.step()
+                self.scheduler.step()
         return tr_d_loss
+
+    def freeze_backbone(self):
+        for name, parameter in self.discriminator.backbone.named_parameters():
+            parameter.requires_grad = False
+        return
 
     @torch.no_grad()
     def validation(self, tr_d_loss, epoch_i, verbose=True, *args, **kwargs):
