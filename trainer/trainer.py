@@ -34,6 +34,7 @@ class Trainer:
             config['num_warmup_steps_d'] = int(config['num_train_steps'] * config['warmup_proportion_d'])
             self.scheduler = get_constant_schedule_with_warmup(self.optimizer,
                                                                num_warmup_steps=config['num_warmup_steps_d'])
+        # log config
         self.config = config
 
     def train_epoch(self, log_env=None) -> float:
