@@ -1,8 +1,8 @@
 import torch
 import numpy as np
-import torch.nn.functional as F
-from transformers import AutoModel
 from typing import Dict, Tuple, List
+import torch.nn.functional as F
+from transformers import AutoModel, get_constant_schedule_with_warmup
 
 from model import Generator, Discriminator
 
@@ -13,9 +13,6 @@ class GANTrainer:
                  generator: Generator,
                  train_dataloader: torch.utils.data.DataLoader,
                  valid_dataloader: torch.utils.data.DataLoader,
-                 generator_optimizer, discriminator_optimizer,
-                 scheduler_d: torch.optim.lr_scheduler.LambdaLR = None,
-                 scheduler_g: torch.optim.lr_scheduler.LambdaLR = None,
                  device: torch.device = None,
                  *args, **kwargs):
         self.config = config
@@ -23,15 +20,33 @@ class GANTrainer:
         self.discriminator = discriminator
         self.train_dataloader = train_dataloader
         self.valid_dataloader = valid_dataloader
-        self.generator_optimizer = generator_optimizer
-        self.discriminator_optimizer = discriminator_optimizer
-        self.scheduler_d = scheduler_d
-        self.scheduler_g = scheduler_g
         self.noise_type = config.get('noise_type', None)
         self.label2stat = config.get('label2stat', None)
         self.device = device
         self.training_stats = []
-        pass
+
+        # define trainable parameters and optimizer
+        if config['frozen_backbone']:
+            self.freeze_backbone()
+        d_vars = [p for p in self.discriminator.parameters() if p.requires_grad]
+        g_vars = [v for v in self.generator.parameters()]
+        print(f'Trainable layers {len(d_vars)}')
+        self.optimizer = torch.optim.AdamW(d_vars, lr=config['learning_rate_discriminator'])
+        self.discriminator_optimizer = torch.optim.AdamW(d_vars, lr=config['learning_rate_discriminator'])
+        self.generator_optimizer = torch.optim.AdamW(g_vars, lr=config['learning_rate_generator'])
+
+        # define schedulers
+        if config['apply_scheduler']:
+            config['num_train_steps'] = config['num_train_examples'] / config['batch_size'] * config['num_train_epochs']
+            config['num_train_steps'] = int(config['num_train_steps'])
+            config['num_warmup_steps_d'] = int(config['num_train_steps'] * config['warmup_proportion_d'])
+            config['num_warmup_steps_g'] = int(config['num_train_steps'] * config['warmup_proportion_g'])
+            self.scheduler_d = get_constant_schedule_with_warmup(self.discriminator_optimizer,
+                                                                 num_warmup_steps=config['num_warmup_steps_d'])
+            self.scheduler_g = get_constant_schedule_with_warmup(self.generator_optimizer,
+                                                                 num_warmup_steps=config['num_warmup_steps_g'])
+        # log config
+        self.config = config
 
     def train_epoch(self, log_env=None) -> Tuple[float, float]:
         total_g_loss = 0
@@ -147,6 +162,11 @@ class GANTrainer:
         avg_loss_g = total_g_loss / len(self.train_dataloader)
         avg_loss_d = total_d_loss / len(self.train_dataloader)
         return avg_loss_g, avg_loss_d
+
+    def freeze_backbone(self):
+        for name, parameter in self.discriminator.backbone.named_parameters():
+            parameter.requires_grad = False
+        return
 
     @torch.no_grad()
     def validation(self, generator_loss, discriminator_loss, epoch_i, verbose=True):
