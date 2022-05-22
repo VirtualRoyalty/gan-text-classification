@@ -15,7 +15,6 @@ class GANTrainer:
                  valid_dataloader: torch.utils.data.DataLoader,
                  device: torch.device = None,
                  *args, **kwargs):
-        self.config = config
         self.generator = generator
         self.discriminator = discriminator
         self.train_dataloader = train_dataloader
@@ -27,7 +26,7 @@ class GANTrainer:
 
         # define trainable parameters and optimizer
         if config['frozen_backbone']:
-            self.freeze_backbone()
+            self.discriminator.freeze_backbone()
         d_vars = [p for p in self.discriminator.parameters() if p.requires_grad]
         g_vars = [v for v in self.generator.parameters()]
         print(f'Trainable layers {len(d_vars)}')
@@ -162,11 +161,6 @@ class GANTrainer:
         avg_loss_g = total_g_loss / len(self.train_dataloader)
         avg_loss_d = total_d_loss / len(self.train_dataloader)
         return avg_loss_g, avg_loss_d
-
-    def freeze_backbone(self):
-        for name, parameter in self.discriminator.backbone.named_parameters():
-            parameter.requires_grad = False
-        return
 
     @torch.no_grad()
     def validation(self, generator_loss, discriminator_loss, epoch_i, verbose=True):

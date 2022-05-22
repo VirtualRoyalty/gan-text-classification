@@ -22,7 +22,7 @@ class Trainer:
 
         # define trainable parameters and optimizer
         if config['frozen_backbone']:
-            self.freeze_backbone()
+            self.discriminator.freeze_backbone()
         d_vars = [p for p in self.discriminator.parameters() if p.requires_grad]
         print(f'Trainable layers {len(d_vars)}')
         self.optimizer = torch.optim.AdamW(d_vars, lr=config['learning_rate_discriminator'])
@@ -75,11 +75,6 @@ class Trainer:
             if self.config['apply_scheduler']:
                 self.scheduler.step()
         return tr_d_loss
-
-    def freeze_backbone(self):
-        for name, parameter in self.discriminator.backbone.named_parameters():
-            parameter.requires_grad = False
-        return
 
     @torch.no_grad()
     def validation(self, tr_d_loss, epoch_i, verbose=True, *args, **kwargs):

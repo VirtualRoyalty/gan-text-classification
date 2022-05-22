@@ -16,7 +16,6 @@ class Discriminator(BaseModel):
         super(Discriminator, self).__init__()
         # define model layers
         self.backbone = backbone
-        self.backbone_freeze = backbone_freeze
         self.input_dropout = nn.Dropout(p=dropout_rate)
 
         hidden_sizes = [input_size] + [hidden_size] * hidden_layers
@@ -70,3 +69,7 @@ class Discriminator(BaseModel):
             predict.extend(result)
             ground_true.extend(labels.detach().numpy().tolist())
         return ground_true, predict
+
+    def freeze_backbone(self) -> None:
+        for name, parameter in self.backbone.named_parameters():
+            parameter.requires_grad = False
