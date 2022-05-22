@@ -29,7 +29,7 @@ class AETrainer:
 
         feature_extractor.eval()
         for epoch in range(self.config['pretrain_gen_num_epochs']):
-            for batch in self.data_loader:
+            for batch in self.dataloader:
                 input_ids = batch[0].to(self.device)
                 input_mask = batch[1].to(self.device)
                 trf_output = feature_extractor(input_ids, attention_mask=input_mask)
