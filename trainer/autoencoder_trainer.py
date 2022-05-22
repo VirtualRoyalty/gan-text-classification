@@ -32,8 +32,9 @@ class AETrainer:
             for batch in self.dataloader:
                 input_ids = batch[0].to(self.device)
                 input_mask = batch[1].to(self.device)
-                trf_output = feature_extractor(input_ids, attention_mask=input_mask)
-                hidden_states = trf_output.last_hidden_state[:, 0, :]
+                with torch.no_grad():
+                    trf_output = feature_extractor(input_ids, attention_mask=input_mask)
+                    hidden_states = trf_output.last_hidden_state[:, 0, :]
                 if self.config['conditional_generator']:
                     labels = batch[2].to(self.device)
                     output = self.autoencoder(hidden_states, labels)
