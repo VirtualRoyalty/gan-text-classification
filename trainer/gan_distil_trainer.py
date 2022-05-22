@@ -53,6 +53,7 @@ class GANDistilTrainer:
             # Generate the output of the Discriminator for real data
             real_states, real_logits, real_probs, enc_states = self.discriminator(input_ids=b_input_ids,
                                                                                   input_mask=b_input_mask)
+            del real_states
 
             # Generate fake data that should have the same distribution of the ones
             noise = torch.zeros(b_input_ids.shape[0], self.config['noise_size'], device=self.device)
@@ -72,18 +73,29 @@ class GANDistilTrainer:
                     self.config['nda_alpha'] = 0.9
                 alpha = min(np.random.normal(self.config['nda_alpha'], 0.1), 0.95)
                 generator_states = alpha * generator_states + (1 - alpha) * enc_states
+            del enc_states
 
             # Generate the output of the Discriminator for fake data
             fake_states, fake_logits, fake_probs, _ = self.discriminator(external_states=generator_states)
+            del fake_states
 
             # get easy end hard samples
             easy_ids, hard_ids = self.get_hard_easy_ids(b_labels)
             easy_samples, hard_samples = self.train_tensor[easy_ids].to(self.device), self.train_tensor[hard_ids].to(self.device)
             easy_states = self.backbone(easy_samples, attention_mask=b_input_mask).last_hidden_state[:, 0, :]
+            del easy_samples
+
             hard_states = self.backbone(hard_samples, attention_mask=b_input_mask).last_hidden_state[:, 0, :]
+
+            del hard_samples
 
             # generator loss estimation
             dist_loss = self.triplet_loss_fn(generator_states, hard_states, easy_states)
+            del easy_states
+            del hard_samples
+            del generator_states
+            torch.cuda.empty_cache()
+
             cheat_rate_loss = -1 * torch.mean(torch.log(1 - fake_probs[:, -1] + self.config['epsilon']))
             # feature_sim_loss = torch.mean(torch.pow(torch.mean(real_states, dim=0) - torch.mean(fake_states, dim=0), 2))
             generator_loss = self.config['cheat_rate_weight'] * cheat_rate_loss + dist_loss
