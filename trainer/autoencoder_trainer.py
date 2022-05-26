@@ -24,7 +24,7 @@ class AETrainer:
         self.config['pretrained_generator'] = True
         self.autoencoder.train()
         criterion = nn.MSELoss()
-        learning_rate = 1e-3
+        learning_rate = self.config.get('AE_learning_rate', 1e-3)
         optimizer = torch.optim.Adam(self.autoencoder.parameters(), lr=learning_rate, weight_decay=1e-5)
 
         feature_extractor.eval()
