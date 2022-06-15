@@ -94,7 +94,8 @@ class GANTrainer:
                 noise = noise.uniform_(*self.config['noise_range'])
 
             if self.config['manifold']:
-                noise_perturbed = noise + torch.randn(b_input_ids.shape[0], self.config['noise_size']).cuda() * 1e-5
+                perturbs = torch.randn(b_input_ids.shape[0], self.config['noise_size']).to(self.device)
+                noise_perturbed = noise + (perturbs * 1e-5)
 
             if self.config['conditional_generator']:
                 rand_labels = np.random.randint(0, self.config['num_labels'], b_input_ids.shape[0], dtype='int')
