@@ -166,6 +166,7 @@ class Experiment:
         config = AutoConfig.from_pretrained(self.config['model_name'])
         self.config['hidden_size'] = int(config.hidden_size)
         self.config['num_train_examples'] = len(self.train_dataloader.dataset)
+        self.config['num_labels'] = len(self.label_list)
 
         transformer = AutoModel.from_pretrained(self.config['model_name'])
         discriminator = Discriminator(backbone=transformer,
