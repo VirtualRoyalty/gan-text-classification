@@ -114,6 +114,8 @@ class Experiment:
                                                     do_shuffle=False, balance_label_examples=False)
 
     def train_only_classifier(self):
+        gc.collect()
+        torch.cuda.empty_cache()
         config = AutoConfig.from_pretrained(self.config['model_name'])
         self.config['hidden_size'] = int(config.hidden_size)
         # Define the number and width of hidden layers
@@ -154,8 +156,15 @@ class Experiment:
         print(f'f1_macro {f1_macro:.3f}')
         print(f'f1_micro {f1_micro:.3f}')
         run.stop()
+        del transformer
+        del discriminator
+        torch.cuda.empty_cache()
+        gc.collect()
 
     def train_gan(self):
+        torch.cuda.empty_cache()
+        gc.collect()
+
         self.config['num_train_examples'] = len(self.train_dataloader.dataset)
         config = AutoConfig.from_pretrained(self.config['model_name'])
         self.config['hidden_size'] = int(config.hidden_size)
@@ -183,9 +192,6 @@ class Experiment:
             generator.cuda()
             discriminator.cuda()
             transformer.cuda()
-
-        gc.collect()
-        torch.cuda.empty_cache()
 
         if self.config['distil_gan']:
             aversarial_trainer = GANDistilTrainer(config=self.config,
@@ -220,6 +226,12 @@ class Experiment:
         print(f'f1_macro {f1_macro:.3f}')
         print(f'f1_micro {f1_micro:.3f}')
         run.stop()
+        del transformer
+        del discriminator
+        del generator
+        torch.cuda.empty_cache()
+        gc.collect()
+
 
     def run(self):
         return
