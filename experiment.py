@@ -8,7 +8,7 @@ import pandas as pd
 import importlib as imp
 import neptune.new as neptune
 from tqdm import tqdm, tqdm_notebook
-from transformers import AutoModel, AutoConfig
+from transformers import AutoModel, AutoTokenizer, AutoConfig
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, f1_score
 import warnings
@@ -55,6 +55,7 @@ class Experiment:
         print(f"Label count: {len(self.label_list)}")
 
     def create_dataloaders(self, tokenizer):
+        tokenizer = AutoTokenizer.from_pretrained(self.config['model_name'])
         train_examples = self.labeled_df.values.tolist()
         # CONFIG['num_train_examples'] = len(train_examples)
         unlabeled_examples = self.unlabeled_df.values.tolist()
@@ -116,7 +117,10 @@ class Experiment:
         self.config['hidden_size'] = int(config.hidden_size)
         # Define the number and width of hidden layers
         transformer = AutoModel.from_pretrained(self.config['model_name'])
-        discriminator = Discriminator(backbone=transformer, **self.config)
+        discriminator = Discriminator(backbone=transformer, input_size=self.config['hidden_size'],
+                                      hidden_size=self.config['hidden_size'],
+                                      num_labels=self.train_df.label.nunique(),
+                                      dropout_rate=self.config['out_dropout_rate'])
         if torch.cuda.is_available():
             discriminator.cuda()
             transformer.cuda()
