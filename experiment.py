@@ -124,11 +124,10 @@ class Experiment:
                                       hidden_size=self.config['hidden_size'],
                                       num_labels=self.train_df.label.nunique(),
                                       dropout_rate=self.config['out_dropout_rate'])
-        if torch.cuda.is_available():
-            transformer.to(self.device)
-            discriminator.to(self.device)
-            if self.config['multi_gpu']:
-                transformer = torch.nn.DataParallel(transformer)
+        transformer.to(self.device)
+        discriminator.to(self.device)
+        if self.config['multi_gpu']:
+            transformer = torch.nn.DataParallel(transformer)
 
         self.config['num_labels'] = self.train_df.label.nunique()
         self.config['num_train_examples'] = len(self.labeled_dataloader.dataset)
@@ -188,10 +187,9 @@ class Experiment:
                                   dropout_rate=self.config['out_dropout_rate'])
 
         # Put everything in the GPU if available
-        if torch.cuda.is_available():
-            generator.to(self.device)
-            transformer.to(self.device)
-            discriminator.to(self.device)
+        generator.to(self.device)
+        transformer.to(self.device)
+        discriminator.to(self.device)
 
         if self.config['pretrained_generator']:
             print('Start AE pre-training...')
