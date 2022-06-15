@@ -117,7 +117,7 @@ class GANTrainer:
             # Generate the output of the Discriminator for fake data
             fake_states, fake_logits, fake_probs, _ = self.discriminator(external_states=generator_states)
             if self.config['manifold']:
-                fake_states_perturbed, _, _, _ = self.discriminator(external_states=generator_states_perturbed)
+                fake_states_perturbed, fake_logits_perturbed, _, _ = self.discriminator(external_states=generator_states_perturbed)
 
             # generator loss estimation
             cheat_rate_loss = -1 * torch.mean(torch.log(1 - fake_probs[:, -1] + self.config['epsilon']))
@@ -144,7 +144,7 @@ class GANTrainer:
             discriminator_loss = self.config['supervised_weight'] * supervised_loss + \
                                  self.config['unsupervised_weight'] * (unsupervised_real_loss + unsupervised_fake_loss)
             if self.config['manifold']:
-                discriminator_manifold_loss = self.mse(fake_states, fake_states_perturbed) / b_input_ids.shape[0]
+                discriminator_manifold_loss = self.mse(fake_logits, fake_logits_perturbed) / b_input_ids.shape[0]
                 discriminator_loss += self.MF * discriminator_manifold_loss
             # Avoid gradient accumulation
             self.generator_optimizer.zero_grad()
