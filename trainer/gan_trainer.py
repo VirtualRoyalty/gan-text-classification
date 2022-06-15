@@ -144,7 +144,7 @@ class GANTrainer:
                 discriminator_loss = self.config['supervised_weight'] * supervised_loss + \
                                      self.config['unsupervised_weight'] * (unsupervised_real_loss + unsupervised_fake_loss)
                 if self.config['manifold']:
-                    discriminator_manifold_loss = self.mse(fake_states, fake_states_perturbed) / self.batch_size
+                    discriminator_manifold_loss = self.mse(fake_states, fake_states_perturbed) / b_input_ids.shape[0]
                     discriminator_loss += self.MF * discriminator_manifold_loss
                 # Avoid gradient accumulation
                 self.generator_optimizer.zero_grad()
