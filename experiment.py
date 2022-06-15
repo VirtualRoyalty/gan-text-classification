@@ -26,12 +26,13 @@ sys.path.append('..')
 
 class Experiment:
 
-    def __init__(self, config, train_df, test_df, secret, device):
+    def __init__(self, config, train_df, test_df, secret, device, tags=None):
         self.config = config
         self.train_df = train_df
         self.test_df = test_df
         self.secret = secret
         self.device = device
+        self.tags = tags
         return
 
     def split_data(self, seed=42):
@@ -134,7 +135,7 @@ class Experiment:
                            train_dataloader=self._train_dataloader,
                            valid_dataloader=self._test_dataloader,
                            device=self.device)
-        run = neptune.init(project=self.secret['project'], api_token=self.secret['token'])
+        run = neptune.init(project=self.secret['project'], api_token=self.secret['token'], tags=self.tags)
         self.config['GAN'] = False
         run['config'] = dtrainer.config
         for epoch_i in range(0, self.config['num_train_epochs']):
