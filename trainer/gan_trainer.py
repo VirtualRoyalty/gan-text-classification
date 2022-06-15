@@ -105,7 +105,7 @@ class GANTrainer:
                 else:
                     generator_states = self.generator(noise)
                     if self.config['manifold']:
-                        generator_states_perturbed = self.generator(noise_perturbed, rand_labels)
+                        generator_states_perturbed = self.generator(noise_perturbed)
 
                 if self.config['NDA'] and not self.config['conditional_generator']:
                     if self.config['nda_alpha'] is None:
