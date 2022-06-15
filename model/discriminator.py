@@ -12,7 +12,7 @@ class Discriminator(BaseModel):
                  hidden_layers: int = 1,
                  num_labels: int = 10,
                  dropout_rate: float = 0.1,
-                 backbone_freeze: bool = False):
+                 backbone_freeze: bool = False, **kwargs):
         super(Discriminator, self).__init__()
         # define model layers
         self.backbone = backbone

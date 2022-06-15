@@ -18,7 +18,7 @@ def generate_data_loader(input_examples,
                          max_seq_length: int,
                          do_shuffle: bool = False,
                          balance_label_examples: bool = False,
-                         return_ids: bool = False) -> torch.utils.data.DataLoader:
+                         return_ids: bool = False, **kwargs) -> torch.utils.data.DataLoader:
     """
     Generate a Dataloader given the input examples, eventually masked if they are
     to be considered NOT labeled.

@@ -7,7 +7,7 @@ from .generator import Generator
 class Autoencoder(BaseModel):
     """Generator model class"""
 
-    def __init__(self, decoder: Generator, input_size: int = 728):
+    def __init__(self, decoder: Generator, input_size: int = 728, **kwargs):
         super(Autoencoder, self).__init__()
         self.encoder = nn.Sequential(
             nn.Linear(input_size, 256),

@@ -10,7 +10,7 @@ class Generator(BaseModel):
                  output_size: int = 512,
                  hidden_size: int = 512,
                  hidden_layers: int = 1,
-                 dropout_rate: float = 0.1):
+                 dropout_rate: float = 0.1, **kwargs):
         super(Generator, self).__init__()
         # define model layers
         layers = []
@@ -35,7 +35,7 @@ class ConditionalGenerator(BaseModel):
                  hidden_size: int = 512,
                  hidden_layers: int = 1,
                  dropout_rate: float = 0.1,
-                 num_labels: int = 10):
+                 num_labels: int = 10, **kwargs):
         super(ConditionalGenerator, self).__init__()
         # define model layers
         layers = []
