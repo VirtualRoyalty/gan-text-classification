@@ -54,7 +54,7 @@ class Experiment:
         self.config['num_labels'] = len(self.label_list)
         print(f"Label count: {len(self.label_list)}")
 
-    def create_dataloaders(self, tokenizer):
+    def create_dataloaders(self):
         tokenizer = AutoTokenizer.from_pretrained(self.config['model_name'])
         train_examples = self.labeled_df.values.tolist()
         # CONFIG['num_train_examples'] = len(train_examples)
@@ -155,7 +155,7 @@ class Experiment:
         run.stop()
 
     def train_gan(self):
-
+        self.config['num_train_examples'] = len(self.train_dataloader.dataset)
         config = AutoConfig.from_pretrained(self.config['model_name'])
         self.config['hidden_size'] = int(config.hidden_size)
         transformer = AutoModel.from_pretrained(self.config['model_name'])
