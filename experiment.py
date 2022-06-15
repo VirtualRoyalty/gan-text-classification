@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, f1_score
 import warnings
 
-from model import Discriminator, Generator, ConditionalGenerator
+from model import Discriminator, Generator, ConditionalGenerator, Autoencoder
 from data_loader import generate_data_loader
 from trainer.trainer import Trainer
 from trainer.gan_trainer import GANTrainer
@@ -193,6 +193,18 @@ class Experiment:
             discriminator.cuda()
             transformer.cuda()
 
+        if self.config['pretrained_generator']:
+            print('Start AE pre-training...')
+            autoencoder = Autoencoder(generator, input_size=self.config['hidden_size'])
+            autoencoder.to(self.device)
+            ae_loader = (self.labeled_dataloader if self.config['conditional_generator'] else self.train_dataloader)
+            ae_trainer = AETrainer(self.config, autoencoder=autoencoder,
+                                   dataloader=ae_loader,
+                                   device=self.device)
+            transformer.eval()
+            ae_trainer.train_epoch(feature_extractor=transformer)
+            print('Generator is pretrained')
+
         if self.config['distil_gan']:
             aversarial_trainer = GANDistilTrainer(config=self.config,
                                                   generator=generator,
@@ -231,7 +243,6 @@ class Experiment:
         del generator
         torch.cuda.empty_cache()
         gc.collect()
-
 
     def run(self):
         return
