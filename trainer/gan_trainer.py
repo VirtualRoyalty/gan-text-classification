@@ -108,7 +108,7 @@ class GANTrainer:
                 if self.config['manifold']:
                     generator_states_perturbed = self.generator(noise_perturbed)
 
-            if self.config['NDA'] and not self.config['conditional_generator']:
+            if self.config['NDA']:
                 if self.config['nda_alpha'] is None:
                     self.config['nda_alpha'] = 0.9
                 alpha = min(np.random.normal(self.config['nda_alpha'], 0.1), 0.95)
