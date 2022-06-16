@@ -94,30 +94,33 @@ class GANTrainer:
                 noise = noise.uniform_(*self.config['noise_range'])
 
             if self.config['manifold']:
-                perturbs = torch.randn(b_input_ids.shape[0], self.config['noise_size']).to(self.device)
-                noise_perturbed = noise + (perturbs * 1e-5)
+
 
             if self.config['conditional_generator']:
                 rand_labels = np.random.randint(0, self.config['num_labels'], b_input_ids.shape[0], dtype='int')
                 rand_labels = torch.from_numpy(rand_labels).to(self.device)
                 generator_states = self.generator(noise, rand_labels)
                 if self.config['manifold']:
+                    perturbs = torch.randn(b_input_ids.shape[0], self.config['noise_size']).to(self.device)
+                    noise_perturbed = noise + (perturbs * 1e-5)
                     generator_states_perturbed = self.generator(noise_perturbed, rand_labels)
             else:
                 generator_states = self.generator(noise)
                 if self.config['manifold']:
+                    perturbs = torch.randn(b_input_ids.shape[0], self.config['noise_size']).to(self.device)
+                    noise_perturbed = noise + (perturbs * 1e-5)
                     generator_states_perturbed = self.generator(noise_perturbed)
 
             if self.config['NDA']:
                 if self.config['nda_alpha'] is None:
                     self.config['nda_alpha'] = 0.9
-                alpha = min(np.random.normal(self.config['nda_alpha'], 0.1), 0.95)
+                alpha = min(np.random.normal(self.config['nda_alpha'], 0.01), 1.0)
                 generator_states = alpha * generator_states + (1 - alpha) * enc_states
 
             # Generate the output of the Discriminator for fake data
             fake_states, fake_logits, fake_probs, _ = self.discriminator(external_states=generator_states)
             if self.config['manifold']:
-                fake_states_perturbed, fake_logits_perturbed, _, _ = self.discriminator(external_states=generator_states_perturbed)
+                fake_states_perturbed, fake_logits_perturbed, fake_probs_perturbed, _ = self.discriminator(external_states=generator_states_perturbed)
 
             # generator loss estimation
             cheat_rate_loss = -1 * torch.mean(torch.log(1 - fake_probs[:, -1] + self.config['epsilon']))
@@ -144,7 +147,7 @@ class GANTrainer:
             discriminator_loss = self.config['supervised_weight'] * supervised_loss + \
                                  self.config['unsupervised_weight'] * (unsupervised_real_loss + unsupervised_fake_loss)
             if self.config['manifold']:
-                discriminator_manifold_loss = self.mse(fake_logits, fake_logits_perturbed) / b_input_ids.shape[0]
+                discriminator_manifold_loss = self.mse(fake_probs, fake_probs_perturbed)
                 discriminator_loss += self.MF * discriminator_manifold_loss
             # Avoid gradient accumulation
             self.generator_optimizer.zero_grad()
