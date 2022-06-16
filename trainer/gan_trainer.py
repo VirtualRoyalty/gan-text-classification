@@ -126,11 +126,18 @@ class GANTrainer:
             unsupervised_real_loss = -1 * torch.mean(torch.log(1 - real_probs[:, -1] + self.config['epsilon']))
             unsupervised_fake_loss = -1 * torch.mean(torch.log(fake_probs[:, -1] + self.config['epsilon']))
 
-            discriminator_loss = self.config['supervised_weight'] * supervised_loss + \
-                                 self.config['unsupervised_weight'] * (unsupervised_real_loss + unsupervised_fake_loss)
             if self.config['manifold']:
+                self.config['unsupervised_weight'] = 0.5
+                discriminator_loss = self.config['supervised_weight'] * supervised_loss + \
+                                     self.config['unsupervised_weight'] * (
+                                                 unsupervised_real_loss + unsupervised_fake_loss)
                 discriminator_manifold_loss = self.mse(fake_probs, fake_probs_perturbed)
                 discriminator_loss += self.MF * discriminator_manifold_loss
+            else:
+                discriminator_loss = self.config['supervised_weight'] * supervised_loss + \
+                                     self.config['unsupervised_weight'] * (
+                                             unsupervised_real_loss + unsupervised_fake_loss)
+
             # Avoid gradient accumulation
             self.generator_optimizer.zero_grad()
             self.discriminator_optimizer.zero_grad()
