@@ -53,7 +53,7 @@ class Experiment:
         self.config['labeled_df'] = len(self.labeled_df)
         self.config['unlabeled_df'] = len(self.unlabeled_df)
         self.config['num_labels'] = len(self.label_list)
-        print(f"Label count: {len(self.label_list)}")
+        print(f"Label count: {len(self._label2id)}")
 
     def create_dataloaders(self):
         tokenizer = AutoTokenizer.from_pretrained(self.config['model_name'])
@@ -157,6 +157,8 @@ class Experiment:
         run.stop()
         del transformer
         del discriminator
+        with torch.no_grad():
+            torch.cuda.empty_cache()
         torch.cuda.empty_cache()
         gc.collect()
 
@@ -240,6 +242,8 @@ class Experiment:
         del transformer
         del discriminator
         del generator
+        with torch.no_grad():
+            torch.cuda.empty_cache()
         torch.cuda.empty_cache()
         gc.collect()
 
