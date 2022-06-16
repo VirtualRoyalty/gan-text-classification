@@ -73,28 +73,8 @@ class GANTrainer:
                 noise = noise.uniform_(*self.config['noise_range'])
             elif self.noise_type == 'normal':
                 noise = noise.normal_(*self.config['noise_range'])
-            elif self.noise_type == 'conditional':
-                noises = []
-                K = 8
-                for i in range(np.ceil(b_input_ids.shape[0] / K)):
-                    if b_input_ids.shape[0] - (i * K) < K:
-                        k = b_input_ids.shape[0] - (i * K)
-                    else:
-                        k = K
-                    _label = np.random.choice(list(self.label2stat.keys()))
-                    _noise = np.random.multivariate_normal(
-                        self.label2stat[_label]['mean'],
-                        self.label2stat[_label]['cov'], size=k)
-                    noises.append(_noise)
-                    if k != K:
-                        break
-                noise = np.vstack(noises).astype('float32')
-                noise = torch.from_numpy(noise).to(self.device)
             else:
                 noise = noise.uniform_(*self.config['noise_range'])
-
-            if self.config['manifold']:
-
 
             if self.config['conditional_generator']:
                 rand_labels = np.random.randint(0, self.config['num_labels'], b_input_ids.shape[0], dtype='int')
@@ -120,12 +100,14 @@ class GANTrainer:
             # Generate the output of the Discriminator for fake data
             fake_states, fake_logits, fake_probs, _ = self.discriminator(external_states=generator_states)
             if self.config['manifold']:
-                fake_states_perturbed, fake_logits_perturbed, fake_probs_perturbed, _ = self.discriminator(external_states=generator_states_perturbed)
+                fake_states_perturbed, fake_logits_perturbed, fake_probs_perturbed, _ = self.discriminator(
+                    external_states=generator_states_perturbed)
 
             # generator loss estimation
             cheat_rate_loss = -1 * torch.mean(torch.log(1 - fake_probs[:, -1] + self.config['epsilon']))
             feature_sim_loss = torch.mean(torch.pow(torch.mean(real_states, dim=0) - torch.mean(fake_states, dim=0), 2))
-            generator_loss = self.config['cheat_rate_weight'] * cheat_rate_loss + self.config['feature_sim_weight'] * feature_sim_loss
+            generator_loss = self.config['cheat_rate_weight'] * cheat_rate_loss + self.config[
+                'feature_sim_weight'] * feature_sim_loss
 
             # discriminator loss estimation
             logits = real_logits[:, 0:-1]
