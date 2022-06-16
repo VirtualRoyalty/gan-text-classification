@@ -123,7 +123,8 @@ class Experiment:
         discriminator = Discriminator(backbone=transformer, input_size=self.config['hidden_size'],
                                       hidden_size=self.config['hidden_size'],
                                       num_labels=self.train_df.label.nunique(),
-                                      dropout_rate=self.config['out_dropout_rate'])
+                                      dropout_rate=self.config['out_dropout_rate'],
+                                      model_name=self.config['model_name'])
         transformer.to(self.device)
         discriminator.to(self.device)
         if self.config['multi_gpu']:
@@ -175,7 +176,8 @@ class Experiment:
                                       input_size=self.config['hidden_size'], hidden_size=self.config['hidden_size'],
                                       hidden_layers=self.config['num_hidden_layers_g'],
                                       num_labels=self.config['num_labels'] + 1,
-                                      dropout_rate=self.config['out_dropout_rate'])
+                                      dropout_rate=self.config['out_dropout_rate'],
+                                      model_name=self.config['model_name'])
 
         if self.config['conditional_generator']:
             generator = ConditionalGenerator(noise_size=self.config['noise_size'], num_labels=self.config['num_labels'],
