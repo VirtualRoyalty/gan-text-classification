@@ -90,8 +90,7 @@ class GANTrainer:
 
             # Generate negative sample if NDA
             if self.config['NDA']:
-                if self.config['nda_alpha'] is None:
-                    self.config['nda_alpha'] = 0.9
+                self.config['nda_alpha'] = self.config.get('nda_alpha', 0.9)
                 alpha = min(np.random.normal(self.config['nda_alpha'], 5e-3), 1.0)
                 generator_states = alpha * generator_states + (1 - alpha) * enc_states
 
