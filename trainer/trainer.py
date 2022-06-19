@@ -4,7 +4,7 @@ from typing import Dict, Tuple
 import torch.nn.functional as F
 from transformers import AutoModel, get_constant_schedule_with_warmup
 
-from model import  Discriminator
+from model import Discriminator
 
 
 class Trainer:
@@ -14,16 +14,17 @@ class Trainer:
                  valid_dataloader: torch.utils.data.DataLoader,
                  device=None):
 
-        self.discriminator = discriminator
+        self.D = discriminator
         self.train_dataloader = train_dataloader
         self.valid_dataloader = valid_dataloader
         self.device = device
+        self.valid_nll = torch.nn.CrossEntropyLoss(ignore_index=-1)
         self.training_stats = []
 
         # define trainable parameters and optimizer
         if config['frozen_backbone']:
-            self.discriminator.freeze_backbone()
-        d_vars = [p for p in self.discriminator.parameters() if p.requires_grad]
+            self.D.freeze_backbone()
+        d_vars = [p for p in self.D.parameters() if p.requires_grad]
         print(f'Trainable layers {len(d_vars)}')
         self.optimizer = torch.optim.AdamW(d_vars, lr=config['learning_rate_discriminator'])
 
@@ -39,7 +40,7 @@ class Trainer:
 
     def train_epoch(self, log_env=None) -> float:
         tr_d_loss = 0
-        self.discriminator.train()
+        self.D.train()
 
         for step, batch in enumerate(self.train_dataloader):
             # Unpack this training batch from our dataloader.
@@ -48,29 +49,27 @@ class Trainer:
             b_labels = batch[2].to(self.device)
             b_label_mask = batch[3].to(self.device)
 
-            # Generate the output of the Discriminator for real and fake data.
-            hidden_states, logits, probs, _ = self.discriminator(input_ids=b_input_ids,
-                                                                 input_mask=b_input_mask)
-            # Disciminator's loss estimation
+            # Get the output of the Discriminator
+            hidden_states, logits, probs, _ = self.D(input_ids=b_input_ids,
+                                                     input_mask=b_input_mask)
+            # Discriminator loss estimation
             log_probs = F.log_softmax(logits, dim=-1)
             label2one_hot = torch.nn.functional.one_hot(b_labels, self.config['num_labels'])
             per_example_loss = -torch.sum(label2one_hot * log_probs, dim=-1)
             per_example_loss = torch.masked_select(per_example_loss, b_label_mask.to(self.device))
             labeled_example_count = per_example_loss.type(torch.float32).numel()
 
-            discriminator_loss = torch.div(torch.sum(per_example_loss.to(self.device)), labeled_example_count)
+            D_loss = torch.div(torch.sum(per_example_loss.to(self.device)), labeled_example_count)
             if log_env:
-                log_env['train/discriminator_loss'].log(discriminator_loss.item())
+                log_env['train/discriminator_loss'].log(D_loss.item())
 
             # Avoid gradient accumulation
             self.optimizer.zero_grad()
-
             # Calculate weights updates
-            discriminator_loss.backward()
-            # Apply modifications
+            D_loss.backward()
             self.optimizer.step()
             # Save the losses to print them later
-            tr_d_loss += discriminator_loss.item()
+            tr_d_loss += D_loss.item()
             # Update the learning rate with the scheduler
             if self.config['apply_scheduler']:
                 self.scheduler.step()
@@ -84,16 +83,12 @@ class Trainer:
 
         # Put the model in evaluation mode--the dropout layers behave differently
         # during evaluation.
-        self.discriminator.eval()
+        self.D.eval()
 
         # Tracking variables
-        total_test_accuracy = 0
         total_test_loss = 0
-        nb_test_steps = 0
         all_preds = []
         all_labels_ids = []
-        # loss
-        nll_loss = torch.nn.CrossEntropyLoss(ignore_index=-1)
 
         # Evaluate data for one epoch
         for batch in self.valid_dataloader:
@@ -106,9 +101,9 @@ class Trainer:
             # the forward pass, since this is only needed for backprop (training).
             with torch.no_grad():
                 # model_outputs = self.backbone(b_input_ids, attention_mask=b_input_mask)
-                _, logits, probs, _ = self.discriminator(input_ids=b_input_ids, input_mask=b_input_mask)
+                _, logits, probs, _ = self.D(input_ids=b_input_ids, input_mask=b_input_mask)
                 # Accumulate the test loss.
-                total_test_loss += nll_loss(logits, b_labels)
+                total_test_loss += self.valid_nll(logits, b_labels)
 
             # Accumulate the predictions and the input labels
             _, preds = torch.max(logits, 1)
@@ -133,6 +128,5 @@ class Trainer:
         self.training_stats.append(info_dct)
         if verbose:
             print(f"\tAverage training loss discriminator: {discriminator_loss:.3f}")
-            # print("  Training epcoh took: {:}".format(training_time))
             print("  Accuracy: {0:.3f}".format(test_accuracy))
         return info_dct

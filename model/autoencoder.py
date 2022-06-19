@@ -5,7 +5,7 @@ from .generator import Generator
 
 
 class Autoencoder(BaseModel):
-    """Generator model class"""
+    """Autoencoder model class for Generator pre-training"""
 
     def __init__(self, decoder: Generator, input_size: int = 728, **kwargs):
         super(Autoencoder, self).__init__()
