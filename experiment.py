@@ -228,7 +228,8 @@ class Experiment:
                                                      return_ids=True)
             print('Hard/easy mining started...')
             aversarial_trainer.hard_mining(labeled_dataloader=self.labeled_dataloader,
-                                           local_dataloader=local_data_loader)
+                                           local_dataloader=local_data_loader,
+                                           hard_mine_epoch=self.config.get('hard_mine_epoch', 2))
             print('Hard/easy mining completed!')
         else:
             aversarial_trainer = GANTrainer(config=self.config,
