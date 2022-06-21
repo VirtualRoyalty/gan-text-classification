@@ -57,7 +57,7 @@ class Discriminator(BaseModel):
         probs = self.softmax(logits)
         return last_hidden_states, logits, probs, trf_states
 
-    def predict(self, loader: base.BaseDataLoader, device: torch.device, gan=True) -> tuple:
+    def predict(self, loader: torch.utils.data.DataLoader, device: torch.device, gan=True) -> tuple:
         predict = []
         ground_true = []
         self.eval()
