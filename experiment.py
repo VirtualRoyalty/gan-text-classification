@@ -56,7 +56,7 @@ class Experiment:
         print(f"Label count: {len(self._label2id)}")
 
     def create_dataloaders(self):
-        tokenizer = AutoTokenizer.from_pretrained(self.config['model_name'])
+        self.tokenizer = AutoTokenizer.from_pretrained(self.config['model_name'])
         train_examples = self.labeled_df.values.tolist()
         # CONFIG['num_train_examples'] = len(train_examples)
         unlabeled_examples = self.unlabeled_df.values.tolist()
@@ -67,7 +67,7 @@ class Experiment:
                                                       train_label_masks,
                                                       label_map=self._label2id,
                                                       batch_size=self.config['batch_size'],
-                                                      tokenizer=tokenizer,
+                                                      tokenizer=self.tokenizer,
                                                       max_seq_length=self.config['max_seq_length'],
                                                       do_shuffle=True,
                                                       balance_label_examples=self.config['apply_balance'])
@@ -77,7 +77,7 @@ class Experiment:
                                                      test_label_masks,
                                                      label_map=self._label2id,
                                                      batch_size=self.config['batch_size'],
-                                                     tokenizer=tokenizer,
+                                                     tokenizer=self.tokenizer,
                                                      max_seq_length=self.config['max_seq_length'],
                                                      do_shuffle=False, balance_label_examples=False)
         if len(unlabeled_examples) > 0:
@@ -91,7 +91,7 @@ class Experiment:
                                                        self.labeled_masks,
                                                        label_map=self.label2id,
                                                        batch_size=self.config['batch_size'],
-                                                       tokenizer=tokenizer,
+                                                       tokenizer=self.tokenizer,
                                                        max_seq_length=self.config['max_seq_length'],
                                                        do_shuffle=True,
                                                        balance_label_examples=self.config['apply_balance'])
@@ -100,7 +100,7 @@ class Experiment:
                                                      train_label_masks,
                                                      label_map=self.label2id,
                                                      batch_size=self.config['batch_size'],
-                                                     tokenizer=tokenizer,
+                                                     tokenizer=self.tokenizer,
                                                      max_seq_length=self.config['max_seq_length'],
                                                      do_shuffle=True,
                                                      balance_label_examples=self.config['apply_balance'])
@@ -109,7 +109,7 @@ class Experiment:
                                                     test_label_masks,
                                                     label_map=self.label2id,
                                                     batch_size=self.config['batch_size'],
-                                                    tokenizer=tokenizer,
+                                                    tokenizer=self.tokenizer,
                                                     max_seq_length=self.config['max_seq_length'],
                                                     do_shuffle=False, balance_label_examples=False)
 
