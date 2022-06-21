@@ -81,14 +81,14 @@ class GANDistilTrainer:
             else:
                 noise = noise.uniform_(*self.config['noise_range'])
 
-            rand_labels = np.random.randint(0, self.config['num_labels'], b_input_ids.shape[0], dtype='int')
+            rand_labels = np.random.randint(1, self.config['num_labels'], b_input_ids.shape[0], dtype='int')
             rand_labels = torch.from_numpy(rand_labels).to(self.device)
             generator_states = self.generator(noise, rand_labels)
 
             if self.config['NDA'] and not self.config['conditional_generator']:
                 if self.config['nda_alpha'] is None:
                     self.config['nda_alpha'] = 0.9
-                alpha = min(np.random.normal(self.config['nda_alpha'], 0.1), 0.95)
+                alpha = min(np.random.normal(self.config['nda_alpha'], 0.01), 0.95)
                 generator_states = alpha * generator_states + (1 - alpha) * enc_states
             del enc_states
 
@@ -97,7 +97,7 @@ class GANDistilTrainer:
             del fake_states
 
             # get easy end hard samples
-            easy_ids, hard_ids = self.get_hard_easy_ids(b_labels)
+            easy_ids, hard_ids = self.get_hard_easy_ids(rand_labels)
             easy_samples, hard_samples = self.train_tensor[easy_ids].to(self.device), self.train_tensor[hard_ids].to(
                 self.device)
             easy_states = self.backbone(easy_samples, attention_mask=b_input_mask).last_hidden_state[:, 0]
