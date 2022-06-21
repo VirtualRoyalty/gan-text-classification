@@ -191,10 +191,8 @@ class GANDistilTrainer:
         # Pretraining of Discriminator and hard/easy sample mining
         pretrainer = Trainer(config=_CONFIG,
                              discriminator=self.discriminator,
-                             discriminator_optimizer=self.discriminator_optimizer,
                              train_dataloader=labeled_dataloader,
                              valid_dataloader=None,
-                             scheduler_d=self.scheduler_d,
                              device=self.device)
         for epoch_i in range(0, hard_mine_epoch):
             print(f"======== Epoch {epoch_i + 1} / {hard_mine_epoch} ========")
