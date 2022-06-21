@@ -81,14 +81,14 @@ class Experiment:
                                                      max_seq_length=self.config['max_seq_length'],
                                                      do_shuffle=False, balance_label_examples=False)
         if len(unlabeled_examples) > 0:
-            labeled_examples = train_examples.copy()
-            labeled_masks = train_label_masks.copy()
+            self.labeled_examples = train_examples.copy()
+            self.labeled_masks = train_label_masks.copy()
             train_examples = train_examples + unlabeled_examples
             tmp_masks = np.zeros(len(unlabeled_examples), dtype=bool)
             train_label_masks = np.concatenate([train_label_masks, tmp_masks])
 
-        self.labeled_dataloader = generate_data_loader(labeled_examples,
-                                                       labeled_masks,
+        self.labeled_dataloader = generate_data_loader(self.labeled_examples,
+                                                       self.labeled_masks,
                                                        label_map=self.label2id,
                                                        batch_size=self.config['batch_size'],
                                                        tokenizer=tokenizer,
