@@ -163,7 +163,7 @@ class Experiment:
         torch.cuda.empty_cache()
         gc.collect()
 
-    def train_gan(self):
+    def train_gan(self, return_models: bool = False):
         torch.cuda.empty_cache()
         gc.collect()
         config = AutoConfig.from_pretrained(self.config['model_name'])
@@ -256,13 +256,18 @@ class Experiment:
         print(f'f1_macro {f1_macro:.3f}')
         print(f'f1_micro {f1_micro:.3f}')
         run.stop()
-        del transformer
-        del discriminator
-        del generator
-        with torch.no_grad():
+
+        if return_models:
+            self.discriminator = discriminator
+            self.generator = generator
+        else:
+            del transformer
+            del discriminator
+            del generator
+            with torch.no_grad():
+                torch.cuda.empty_cache()
             torch.cuda.empty_cache()
-        torch.cuda.empty_cache()
-        gc.collect()
+            gc.collect()
 
     def run(self):
         return
