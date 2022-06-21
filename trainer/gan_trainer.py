@@ -78,7 +78,7 @@ class GANTrainer:
             # Get Generator states from latent noise vectors
             #   if conditional generator or if vanilla generator used
             if self.config['conditional_generator']:
-                rand_labels = np.random.randint(0, self.config['num_labels'], batch_size, dtype='int')
+                rand_labels = np.random.randint(1, self.config['num_labels'], batch_size, dtype='int')
                 rand_labels = torch.from_numpy(rand_labels).to(self.device)
                 generator_states = self.G(noise, rand_labels)
                 if self.config['manifold']:
