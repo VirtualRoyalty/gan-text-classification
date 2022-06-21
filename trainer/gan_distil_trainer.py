@@ -3,8 +3,11 @@ import numpy as np
 import torch.nn.functional as F
 from typing import Dict, Tuple, List
 from transformers import AutoModel, get_constant_schedule_with_warmup
+from tqdm import tqdm_notebook
 
+from trainer import Trainer
 from model import Generator, Discriminator
+from data_loader import generate_data_loader
 
 
 class GANDistilTrainer:
@@ -95,11 +98,12 @@ class GANDistilTrainer:
 
             # get easy end hard samples
             easy_ids, hard_ids = self.get_hard_easy_ids(b_labels)
-            easy_samples, hard_samples = self.train_tensor[easy_ids].to(self.device), self.train_tensor[hard_ids].to(self.device)
-            easy_states = self.backbone(easy_samples, attention_mask=b_input_mask).last_hidden_state[:, 0, :]
+            easy_samples, hard_samples = self.train_tensor[easy_ids].to(self.device), self.train_tensor[hard_ids].to(
+                self.device)
+            easy_states = self.backbone(easy_samples, attention_mask=b_input_mask).last_hidden_state[:, 0]
             del easy_samples
 
-            hard_states = self.backbone(hard_samples, attention_mask=b_input_mask).last_hidden_state[:, 0, :]
+            hard_states = self.backbone(hard_samples, attention_mask=b_input_mask).last_hidden_state[:, 0]
             del hard_samples
 
             # generator loss estimation
@@ -112,7 +116,7 @@ class GANDistilTrainer:
             cheat_rate_loss = -1 * torch.mean(torch.log(1 - fake_probs[:, -1] + self.config['epsilon']))
             # feature_sim_loss = torch.mean(torch.pow(torch.mean(real_states, dim=0) - torch.mean(fake_states, dim=0), 2))
             generator_loss = self.config['cheat_rate_weight'] * cheat_rate_loss + dist_loss
-                             # self.config['feature_sim_weight'] * feature_sim_loss
+            # self.config['feature_sim_weight'] * feature_sim_loss
             generator_loss *= self.config['generator_weight']
 
             # discriminator loss estimation
@@ -178,6 +182,90 @@ class GANDistilTrainer:
             else:
                 hard_ids.append(np.random.choice(hard_list))
         return easy_ids, hard_ids
+
+    def hard_mining(self, labeled_dataloader: torch.utils.data.DataLoader,
+                    local_dataloader: torch.utils.data.DataLoader,
+                    hard_mine_epoch: int = 3):
+        _CONFIG = self.config.copy()
+        _CONFIG['num_labels'] = _CONFIG['num_labels'] + 1
+        # Pretraining of Discriminator and hard/easy sample mining
+        pretrainer = Trainer(config=_CONFIG,
+                             discriminator=self.discriminator,
+                             discriminator_optimizer=self.discriminator_optimizer,
+                             train_dataloader=labeled_dataloader,
+                             valid_dataloader=None,
+                             scheduler_d=self.scheduler_d,
+                             device=self.device)
+        for epoch_i in range(0, hard_mine_epoch):
+            print(f"======== Epoch {epoch_i + 1} / {hard_mine_epoch} ========")
+            _ = pretrainer.train_epoch()
+
+        # Hard/easy samples mining
+        self.discriminator.eval()
+
+        hard_easy_embs = []
+        easy_embs = []
+        easy_labels = []
+        easy_ids = []
+        hard_embs = []
+        hard_labels = []
+        hard_ids = []
+        with torch.no_grad():
+            for batch in tqdm_notebook(local_dataloader):
+                _ids = batch[0].to(self.device)
+                _input_ids = batch[1].to(self.device)
+                input_mask = batch[2].to(self.device)
+                _labels = batch[3].to(self.device)
+                _, logits, probs, _embs = self.discriminator(_input_ids, input_mask=input_mask)
+                embs = _embs.cpu().detach().numpy()
+                ids = _ids.cpu().detach().numpy()
+                labels = _labels.cpu().detach().numpy()
+                probs = probs.cpu().detach().numpy()
+                predicted_labels = probs.argmax(axis=1)
+
+                indexes = np.arange(_input_ids.shape[0])
+                hard_indexes = indexes[labels != predicted_labels].tolist()
+                hard_indexes += indexes[probs.max(axis=1) < 0.5].tolist()
+                easy_indexes = indexes[labels == predicted_labels].tolist()
+
+                # easy
+                easy_embs.append(embs[easy_indexes])
+                easy_labels.extend(labels[easy_indexes].tolist())
+                easy_ids.extend(ids[easy_indexes].tolist())
+
+                # hard
+                hard_embs.append(embs[hard_indexes])
+                hard_labels.extend(labels[hard_indexes].tolist())
+                hard_ids.extend(ids[hard_indexes].tolist())
+                hard_easy_embs.append(embs)
+
+                del _input_ids
+                del _labels
+                del _embs
+                torch.cuda.empty_cache()
+
+        easy_embs = np.vstack(easy_embs)
+        hard_embs = np.vstack(hard_embs)
+
+        label2easy_id = {}
+        for i, label in enumerate(easy_labels):
+            if label not in label2easy_id:
+                label2easy_id[label] = [easy_ids[i]]
+            else:
+                label2easy_id[label].append(easy_ids[i])
+
+        label2hard_id = {}
+        for i, label in enumerate(hard_labels):
+            if label not in label2hard_id:
+                label2hard_id[label] = [hard_ids[i]]
+            else:
+                label2hard_id[label].append(hard_ids[i])
+
+        self.config['label2hard_id'] = label2hard_id
+        self.config['label2easy_id'] = label2easy_id
+        self.config['easy_ids'] = easy_ids
+        self.config['hard_ids'] = hard_ids
+        # return hard_embs, easy_embs
 
     @torch.no_grad()
     def validation(self, generator_loss, discriminator_loss, epoch_i, verbose=True):

@@ -212,10 +212,24 @@ class Experiment:
             aversarial_trainer = GANDistilTrainer(config=self.config,
                                                   generator=generator,
                                                   discriminator=discriminator,
-                                                  train_dataloader=self.labeled_dataloader,
+                                                  train_dataloader=self.train_dataloader,
                                                   train_tensor=self.labeled_dataloader.dataset.tensors[0],
                                                   valid_dataloader=self.test_dataloader,
                                                   device=self.device)
+
+            local_data_loader = generate_data_loader(self.labeled_examples,
+                                                     self.labeled_masks,
+                                                     label_map=self.label2id,
+                                                     batch_size=100,
+                                                     tokenizer=self.tokenizer,
+                                                     max_seq_length=self.config['max_seq_length'],
+                                                     do_shuffle=False,
+                                                     balance_label_examples=self.config['apply_balance'],
+                                                     return_ids=True)
+            print('Hard/easy mining started...')
+            aversarial_trainer.hard_mining(labeled_dataloader=self.labeled_dataloader,
+                                           local_dataloader=local_data_loader)
+            print('Hard/easy mining completed!')
         else:
             aversarial_trainer = GANTrainer(config=self.config,
                                             generator=generator,
