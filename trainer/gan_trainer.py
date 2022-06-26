@@ -1,5 +1,9 @@
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
+matplotlib.use('Agg')
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, f1_score, classification_report
+
 from typing import Dict, Tuple, List
 import torch.nn.functional as F
 from transformers import AutoModel, get_constant_schedule_with_warmup
@@ -170,7 +174,7 @@ class GANTrainer:
         return noise
 
     @torch.no_grad()
-    def validation(self, generator_loss, discriminator_loss, epoch_i, verbose=True):
+    def validation(self, generator_loss, discriminator_loss, epoch_i, verbose=True, log_env=False):
         # Put the model in evaluation mode
         self.D.eval()
         self.G.eval()
@@ -198,12 +202,27 @@ class GANTrainer:
             all_preds += preds.detach().cpu()
             all_labels_ids += labels.detach().cpu()
 
+        # Calculate the average loss over all of the batches.
+        avg_test_loss = total_test_loss / len(self.valid_dataloader)
+
         # Report the final accuracy for this validation run.
         all_preds = torch.stack(all_preds).numpy()
         all_labels_ids = torch.stack(all_labels_ids).numpy()
-        test_accuracy = np.sum(all_preds == all_labels_ids) / len(all_preds)
-        # Calculate the average loss over all of the batches.
-        avg_test_loss = total_test_loss / len(self.valid_dataloader)
+        valid_accuracy = np.sum(all_preds == all_labels_ids) / len(all_preds)
+        f1_macro = f1_score(all_labels_ids, all_preds, average='macro')
+        f1_micro = f1_score(all_labels_ids, all_preds, average='micro')
+
+        if log_env:
+            log_env['valid/discriminator_loss'].log(avg_test_loss)
+            log_env['valid/discriminator_accuracy'].log(valid_accuracy)
+            log_env['valid/f1_macro'].log(f1_macro)
+            log_env['valid/f1_micro'].log(f1_micro)
+            fig, _ = self.get_error_matrix(all_labels_ids, all_preds)
+            log_env['valid/cmatrix'].log(fig)
+            fig, _ = self.get_error_matrix(all_labels_ids, all_preds, normalize="true")
+            log_env['valid/cmatrix_norm'].log(fig)
+            fig, _ = self.get_error_matrix(all_labels_ids, all_preds, normalize="true", values_format=".2g")
+            log_env['valid/cmatrix_norm_annot'].log(fig)
 
         # Record all statistics from this epoch.
         info_dct = {
@@ -211,11 +230,20 @@ class GANTrainer:
             'Training Loss generator': generator_loss,
             'Training Loss discriminator': discriminator_loss,
             'discriminator_loss': avg_test_loss.item(),
-            'discriminator_accuracy': test_accuracy,
+            'discriminator_accuracy': valid_accuracy,
         }
         self.training_stats.append(info_dct)
         if verbose:
             print(f"\tAverage training loss generetor: {generator_loss:.3f}")
             print(f"\tAverage training loss discriminator: {discriminator_loss:.3f}")
-            print("  Accuracy: {0:.3f}".format(test_accuracy))
+            print("  Accuracy: {0:.3f}".format(valid_accuracy))
         return info_dct
+
+    def get_error_matrix(self, labels, pred, normalize=None, include_values=False, values_format=None):
+        cm = confusion_matrix(labels, pred, normalize=normalize)
+        cmf = ConfusionMatrixDisplay(cm)
+        fig, ax = plt.subplots(figsize=(12, 10), dpi=100)
+        cmf.plot(ax=ax, cmap='Blues', include_values=include_values, values_format=values_format)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        return fig, cm

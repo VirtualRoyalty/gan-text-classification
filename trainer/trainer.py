@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+matplotlib.use('Agg')
+
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, f1_score, classification_report
 from typing import Dict, Tuple
 import torch.nn.functional as F
@@ -139,6 +141,8 @@ class Trainer:
             log_env['valid/cmatrix'].log(fig)
             fig, _ = self.get_error_matrix(all_labels_ids, all_preds, normalize="true")
             log_env['valid/cmatrix_norm'].log(fig)
+            fig, _ = self.get_error_matrix(all_labels_ids, all_preds, normalize="true", values_format=".2g")
+            log_env['valid/cmatrix_norm_annot'].log(fig)
 
         self.training_stats.append(info_dct)
         if verbose:
@@ -146,11 +150,11 @@ class Trainer:
             print("  Accuracy: {0:.3f}".format(valid_accuracy))
         return info_dct
 
-    def get_error_matrix(self, labels, pred, normalize=None, include_values=False):
+    def get_error_matrix(self, labels, pred, normalize=None, include_values=False, values_format=None):
         cm = confusion_matrix(labels, pred, normalize=normalize)
         cmf = ConfusionMatrixDisplay(cm)
         fig, ax = plt.subplots(figsize=(12, 10), dpi=100)
-        cmf.plot(ax=ax, cmap='Blues', include_values=include_values)
+        cmf.plot(ax=ax, cmap='Blues', include_values=include_values, values_format=values_format)
         ax.set_xticks([])
         ax.set_yticks([])
         return fig, cm
