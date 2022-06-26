@@ -49,14 +49,16 @@ class Experiment:
             self.labeled_df = pd.DataFrame([], columns=self.train_df)
             for label in self.train_df.label.unique():
                 tmp = self.train_df[self.train_df.label == label]
-                tmp = tmp.sample(min(self.config['labeled_per_class'], len(tmp)))
+                tmp = tmp.sample(min(self.config['labeled_per_class'], len(tmp)),
+                                 random_state=self.config['SEED'])
                 self.labeled_df = self.labeled_df.append(tmp)
-            self.unlabeled_df = self.train_df.sample(min(len(self.train_df), self.config['unlabeled_size']))
+            self.unlabeled_df = self.train_df.sample(min(len(self.train_df), self.config['unlabeled_size']),
+                                                     random_state=self.config['SEED'])
         else:
             self.labeled_df, self.unlabeled_df, _, _ = train_test_split(self.train_df, self.train_df,
                                                                         test_size=(1 - PROPORTION),
                                                                         random_state=seed, stratify=self.train_df.label)
-            self.unlabeled_df = self.unlabeled_df.sample(frac=UNLABEL_PROPORTION)
+            self.unlabeled_df = self.unlabeled_df.sample(frac=UNLABEL_PROPORTION,  random_state=self.config['SEED'])
 
         self.unlabeled_df['label'] = UNKNOWN_LABEL_NAME
         print(f"Labeled: {len(self.labeled_df)} Unlabeled: {len(self.unlabeled_df)}")
