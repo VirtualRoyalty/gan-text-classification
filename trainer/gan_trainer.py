@@ -241,6 +241,8 @@ class GANTrainer:
         return info_dct
 
     def get_error_matrix(self, labels, pred, normalize=None, include_values=False, values_format=None):
+        if values_format is not None:
+            include_values = True
         cm = confusion_matrix(labels, pred, normalize=normalize)
         cmf = ConfusionMatrixDisplay(cm)
         fig, ax = plt.subplots(figsize=(12, 10), dpi=100)
