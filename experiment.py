@@ -50,7 +50,7 @@ class Experiment:
             for label in self.train_df.label.unique():
                 tmp = self.train_df[self.train_df.label == label]
                 tmp = tmp.sample(min(self.config['labeled_per_class'], len(tmp)),
-                                 random_state=self.config['SEED'])
+                                 random_state=self.config['SEED']).reset_index(drop=True)
                 self.labeled_df = self.labeled_df.append(tmp)
             self.unlabeled_df = self.train_df.sample(min(len(self.train_df), self.config['unlabeled_size']),
                                                      random_state=self.config['SEED'])
