@@ -131,7 +131,7 @@ class GANTrainer:
 
             # Calculate manifold regularization loss if needed
             if self.config['manifold']:
-                self.config['unsupervised_weight'] = 0.5
+                # self.config['unsupervised_weight'] = 0.5
                 D_manifold_loss = self.MF * self.mse(fake_probs, fake_probs_prtd)
             else:
                 D_manifold_loss = 0
