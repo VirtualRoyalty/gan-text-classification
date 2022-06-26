@@ -143,7 +143,7 @@ class Experiment:
         for epoch_i in range(0, self.config['num_train_epochs']):
             print(f"======== Epoch {epoch_i + 1} / {self.config['num_train_epochs']} ========")
             tr_d_loss = dtrainer.train_epoch(log_env=run)
-            result = dtrainer.validation(tr_d_loss=tr_d_loss, epoch_i=epoch_i)
+            result = dtrainer.validation(tr_d_loss=tr_d_loss, epoch_i=epoch_i, log_env=run)
             run['valid/discriminator_loss'].log(result['discriminator_loss'])
             run['valid/discriminator_accuracy'].log(result['discriminator_accuracy'])
 
@@ -243,7 +243,7 @@ class Experiment:
         for epoch_i in range(0, self.config['num_train_epochs']):
             print(f"======== Epoch {epoch_i + 1} / {self.config['num_train_epochs']} ========")
             tr_g_loss, tr_d_loss = aversarial_trainer.train_epoch(log_env=run)
-            result = aversarial_trainer.validation(tr_d_loss, tr_g_loss, epoch_i=epoch_i)
+            result = aversarial_trainer.validation(tr_d_loss, tr_g_loss, epoch_i=epoch_i, log_env=run)
             run['valid/discriminator_loss'].log(result['discriminator_loss'])
             run['valid/discriminator_accuracy'].log(result['discriminator_accuracy'])
 
@@ -256,7 +256,6 @@ class Experiment:
         print(f'f1_macro {f1_macro:.3f}')
         print(f'f1_micro {f1_micro:.3f}')
         run.stop()
-
         if return_models:
             self.discriminator = discriminator
             self.generator = generator
