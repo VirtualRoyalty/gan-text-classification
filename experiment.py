@@ -46,7 +46,7 @@ class Experiment:
         UNLABEL_PROPORTION = self.config['unlabeled_proportion']
 
         if self.config.get('balansed_split', False):
-            self.labeled_df = pd.DataFrame([], columns=self.train_df)
+            self.labeled_df = pd.DataFrame([], columns=self.train_df.columns)
             for label in self.train_df.label.unique():
                 tmp = self.train_df[self.train_df.label == label]
                 tmp = tmp.sample(min(self.config['labeled_per_class'], len(tmp)),
