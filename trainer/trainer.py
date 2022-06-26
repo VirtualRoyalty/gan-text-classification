@@ -137,7 +137,7 @@ class Trainer:
             log_env['valid/f1_micro'].log(f1_micro)
             fig, _ = self.get_error_matrix(all_labels_ids, all_preds)
             log_env['valid/cmatrix'].log(fig)
-            fig, _ = self.get_error_matrix(all_labels_ids, all_preds, normalize=True)
+            fig, _ = self.get_error_matrix(all_labels_ids, all_preds, normalize="true")
             log_env['valid/cmatrix_norm'].log(fig)
 
         self.training_stats.append(info_dct)
