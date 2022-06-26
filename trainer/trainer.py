@@ -121,6 +121,7 @@ class Trainer:
         valid_accuracy = np.sum(all_preds == all_labels_ids) / len(all_preds)
         f1_macro = f1_score(all_labels_ids, all_preds, average='macro')
         f1_micro = f1_score(all_labels_ids, all_preds, average='micro')
+        creport = classification_report(all_labels_ids, all_preds)
 
         # Calculate the average loss over all of the batches.
         avg_test_loss = total_test_loss / len(self.valid_dataloader)
@@ -144,6 +145,7 @@ class Trainer:
             log_env['valid/cmatrix_norm'].log(fig)
             fig, _ = self.get_error_matrix(all_labels_ids, all_preds, normalize="true", values_format=".2g")
             log_env['valid/cmatrix_norm_annot'].log(fig)
+            log_env['valid/report'].log(creport)
 
         self.training_stats.append(info_dct)
         if verbose:

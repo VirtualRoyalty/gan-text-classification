@@ -39,10 +39,19 @@ class Experiment:
         UNKNOWN_LABEL_NAME = "UNK"
         PROPORTION = self.config['labeled_proportion']
         UNLABEL_PROPORTION = self.config['unlabeled_proportion']
-        self.labeled_df, self.unlabeled_df, _, _ = train_test_split(self.train_df, self.train_df,
-                                                                    test_size=(1 - PROPORTION),
-                                                                    random_state=seed, stratify=self.train_df.label)
-        self.unlabeled_df = self.unlabeled_df.sample(frac=UNLABEL_PROPORTION)
+        if self.config.get('balansed_split', False):
+            self.labeled_df, self.unlabeled_df, _, _ = train_test_split(self.train_df, self.train_df,
+                                                                        test_size=(1 - PROPORTION),
+                                                                        random_state=seed, stratify=self.train_df.label)
+            self.unlabeled_df = self.unlabeled_df.sample(frac=UNLABEL_PROPORTION)
+        else:
+            self.labeled_df = pd.DataFrame([], columns=self.train_df)
+            for label in self.train_df.label.unique():
+                tmp = self.train_df[self.train_df.label == label]
+                tmp = tmp.sample(min(self.config['labeled_per_class'], len(tmp)))
+                self.labeled_df = self.labeled_df.append(tmp)
+            self.unlabeled_df = self.train_df.sample(min(len(self.train_df), self.config['unlabeled_size']))
+
         self.unlabeled_df['label'] = UNKNOWN_LABEL_NAME
         print(f"Labeled: {len(self.labeled_df)} Unlabeled: {len(self.unlabeled_df)}")
 
@@ -146,15 +155,6 @@ class Experiment:
             result = dtrainer.validation(tr_d_loss=tr_d_loss, epoch_i=epoch_i, log_env=run)
             run['valid/discriminator_loss'].log(result['discriminator_loss'])
             run['valid/discriminator_accuracy'].log(result['discriminator_accuracy'])
-
-        _labels, _predicts = discriminator.predict(self._test_dataloader, device=self.device, gan=False)
-        f1_macro = f1_score(_labels, _predicts, average='macro')
-        f1_micro = f1_score(_labels, _predicts, average='micro')
-        run['valid/f1_macro'].log(f1_macro)
-        run['valid/f1_micro'].log(f1_micro)
-        print('Only classifier')
-        print(f'f1_macro {f1_macro:.3f}')
-        print(f'f1_micro {f1_micro:.3f}')
         run.stop()
         del transformer
         del discriminator
@@ -246,15 +246,6 @@ class Experiment:
             result = aversarial_trainer.validation(tr_d_loss, tr_g_loss, epoch_i=epoch_i, log_env=run)
             run['valid/discriminator_loss'].log(result['discriminator_loss'])
             run['valid/discriminator_accuracy'].log(result['discriminator_accuracy'])
-
-        _labels, _predicts = discriminator.predict(self.test_dataloader, device=self.device)
-        f1_macro = f1_score(_labels, _predicts, average='macro')
-        f1_micro = f1_score(_labels, _predicts, average='micro')
-        run['valid/f1_macro'].log(f1_macro)
-        run['valid/f1_micro'].log(f1_micro)
-        print('GAN')
-        print(f'f1_macro {f1_macro:.3f}')
-        print(f'f1_micro {f1_micro:.3f}')
         run.stop()
         if return_models:
             self.discriminator = discriminator
