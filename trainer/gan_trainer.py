@@ -1,9 +1,10 @@
 import torch
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use('Agg')
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, f1_score, classification_report
 
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, f1_score, classification_report
 from typing import Dict, Tuple, List
 import torch.nn.functional as F
 from transformers import AutoModel, get_constant_schedule_with_warmup
