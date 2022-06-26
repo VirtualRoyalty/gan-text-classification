@@ -13,6 +13,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, f1_score
 import warnings
 
+import matplotlib
+import matplotlib.pyplot as plt
+plt.ioff()
+matplotlib.use('Agg')
+
 from model import Discriminator, Generator, ConditionalGenerator, Autoencoder
 from data_loader import generate_data_loader
 from trainer.trainer import Trainer
